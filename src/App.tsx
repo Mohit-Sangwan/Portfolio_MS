@@ -115,7 +115,7 @@ const projects: ProjectItem[] = [
     title: "Club 360 Management System",
     category: "SaaS / Management",
     description: "A comprehensive management solution for fitness centers including member tracking, package management, and attendance systems.",
-    tech: [".NET Framework", "Crystal Reports", "SQL"],
+    tech: [".NET Framework", "Crystal Reports", "SQL Server"],
     metrics: "Full lifecycle ownership"
   },
   {
@@ -131,22 +131,22 @@ const skillCategories: SkillCategory[] = [
   {
     title: "Core Languages",
     icon: <Code size={20} />,
-    skills: ["C#", "Core Java", "C++", "TypeScript", "SQL"]
+    skills: ["C#", "Core Java", "C++", "C Lang","Basic TypeScript", "SQL Server", "PostgreSQL"]
   },
   {
     title: "Frameworks & Arch",
     icon: <Layers size={20} />,
-    skills: ["ASP.NET MVC", ".NET Core", "ASP .NET WEBFORMS", "Web API", "Entity Framework", "Microservices"]
+    skills: ["ASP.NET MVC", ".NET Core", "ASP.NET WEBFORMS", "Web API", "Entity Framework", "Windows Services", " Basic Windows Presentation Foundation (WPF)"]
   },
   {
     title: "Frontend",
     icon: <Globe size={20} />,
-    skills: ["Basic React", "Basic Angular", "JavaScript", "HTML5/CSS3", "Bootstrap"]
+    skills: ["Basic React", "Basic Angular", "JavaScript", "HTML5/CSS3", "Bootstrap", "Tailwind CSS"]
   },
   {
     title: "Tools & DevOps",
     icon: <Terminal size={20} />,
-    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "Flutter", "SSRS", "Mirth Connect"]
+    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "Flutter", "SSRS", "Crystal Reports", "Mirth Connect"]
   }
 ];
 
