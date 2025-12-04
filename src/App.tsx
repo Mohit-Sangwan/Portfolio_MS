@@ -635,9 +635,9 @@ export default function App() {
             <p className="text-sm mt-2 max-w-xs">Building the digital future of healthcare and enterprise systems.</p>
           </div>
           <div className="flex gap-6">
-             <a href="#" className="hover:text-white transition-colors">Github</a>
+             <a href="#" className="hover:text-white transition-colors">""</a>
              <a href={personalInfo.linkedin} className="hover:text-white transition-colors">LinkedIn</a>
-             <a href="#" className="hover:text-white transition-colors">Twitter</a>
+             <a href="#" className="hover:text-white transition-colors">""</a>
           </div>
         </div>
         <div className="container mx-auto px-6 mt-8 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">
