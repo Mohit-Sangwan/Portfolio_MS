@@ -602,7 +602,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="md:w-1/2 p-12 bg-white dark:bg-slate-800">
+            <div className="hidden md:w-1/2 p-12 bg-white dark:bg-slate-800">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Send a Message</h3>
               <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                 <div>
