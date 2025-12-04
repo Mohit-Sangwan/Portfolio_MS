@@ -370,6 +370,10 @@ export default function App() {
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Users size={20} /></div>
                   <span className="font-medium">Team Leadership</span>
                 </div>
+                 <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Code size={20} /></div>
+                  <span className="font-medium">Development</span>
+                </div>
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Database size={20} /></div>
                   <span className="font-medium">SQL Optimization</span>
