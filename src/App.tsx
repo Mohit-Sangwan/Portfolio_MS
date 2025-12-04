@@ -146,7 +146,7 @@ const skillCategories: SkillCategory[] = [
   {
     title: "Tools & DevOps",
     icon: <Terminal size={20} />,
-    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "Flutter", "SSRS", "Crystal Reports", "Mirth Connect"]
+    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "Fiddler", "SSRS", "Crystal Reports", "Mirth Connect"]
   }
 ];
 
