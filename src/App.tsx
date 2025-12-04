@@ -141,12 +141,12 @@ const skillCategories: SkillCategory[] = [
   {
     title: "Frontend",
     icon: <Globe size={20} />,
-    skills: ["React", "Angular", "JavaScript", "HTML5/CSS3", "Bootstrap"]
+    skills: ["Basic React", "Basic Angular", "JavaScript", "HTML5/CSS3", "Bootstrap"]
   },
   {
     title: "Tools & DevOps",
     icon: <Terminal size={20} />,
-    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "SSRS", "Mirth Connect"]
+    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "Flutter", "SSRS", "Mirth Connect"]
   }
 ];
 
