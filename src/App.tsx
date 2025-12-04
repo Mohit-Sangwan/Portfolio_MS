@@ -136,7 +136,7 @@ const skillCategories: SkillCategory[] = [
   {
     title: "Frameworks & Arch",
     icon: <Layers size={20} />,
-    skills: ["ASP.NET MVC", ".NET Core", "Web API", "Entity Framework", "Microservices"]
+    skills: ["ASP.NET MVC", ".NET Core", "ASP .NET WEBFORMS", "Web API", "Entity Framework", "Microservices"]
   },
   {
     title: "Frontend",
