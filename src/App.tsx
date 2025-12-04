@@ -440,8 +440,8 @@ export default function App() {
             {experiences.map((exp, idx) => (
               <div key={exp.id} className="relative pl-8 sm:pl-32 py-6 group">
                 {/* Date for Desktop */}
-                <div className="hidden sm:flex flex-col items-end absolute left-0 top-6 w-24 text-right">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white block">{exp.period.split('-')[0]}</span>
+                <div className="hidden sm:flex flex-col items-end absolute left-0 top-6 w-28 text-right pr-4">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white block pr-4">{exp.period.split('-')[0]}</span>
                   <span className="text-xs text-slate-500">{exp.period.split('-')[1] || 'Present'}</span>
                 </div>
 
