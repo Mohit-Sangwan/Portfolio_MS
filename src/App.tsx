@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Github, 
   Linkedin, 
@@ -21,8 +21,106 @@ import {
   TrendingUp,
   Users,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Heart,
+  Activity,
+  ShoppingCart,
+  Package,
+  Copy,
+  Check
 } from 'lucide-react';
+
+// --- Toast Notification Component ---
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
+const Toast: React.FC<{ toast: Toast; onClose: (id: string) => void }> = ({ toast, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => onClose(toast.id), 3000);
+    return () => clearTimeout(timer);
+  }, [toast.id, onClose]);
+
+  const bgColor = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500'
+  }[toast.type];
+
+  return (
+    <div className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in-right`}>
+      {toast.type === 'success' && <Check size={18} />}
+      <span className="text-sm font-medium">{toast.message}</span>
+    </div>
+  );
+};
+
+// --- Animated Counter Hook ---
+const useAnimatedCounter = (finalValue: number | string, duration: number = 2000) => {
+  const [displayValue, setDisplayValue] = React.useState(0);
+  const [isVisible, setIsVisible] = React.useState(false);
+  const elementRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !isVisible) {
+        setIsVisible(true);
+      }
+    }, { threshold: 0.1 });
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isVisible]);
+
+  React.useEffect(() => {
+    if (!isVisible) return;
+
+    const parseValue = () => {
+      if (typeof finalValue === 'string') {
+        return parseInt(finalValue.replace(/[^0-9]/g, '')) || 0;
+      }
+      return finalValue;
+    };
+
+    const target = parseValue();
+    let current = 0;
+    const increment = target / (duration / 16);
+    const interval = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        setDisplayValue(target);
+        clearInterval(interval);
+      } else {
+        setDisplayValue(Math.floor(current));
+      }
+    }, 16);
+
+    return () => clearInterval(interval);
+  }, [isVisible, finalValue, duration]);
+
+  return { displayValue, elementRef };
+};
+
+// --- Prefers Reduced Motion Hook ---
+const usePrefersReducedMotion = () => {
+  const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', listener);
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, []);
+
+  return prefersReducedMotion;
+};
 
 // --- Types & Interfaces ---
 
@@ -32,6 +130,8 @@ interface ExperienceItem {
   company: string;
   period: string;
   description: string;
+  techStack?: string[];
+  roleType?: string[];
   achievements: string[];
 }
 
@@ -41,18 +141,47 @@ interface ProjectItem {
   description: string;
   tech: string[];
   metrics?: string;
+  image?: string | null;
+  demoLink?: string;
+  githubLink?: string;
+  customIcon?: React.ReactNode;
+  startDate?: string;
+  endDate?: string;
+  teamSize?: string;
+  difficulty?: 'Easy' | 'Medium' | 'Complex';
+  testimonial?: {
+    text: string;
+    author?: string;
+  };
 }
 
 interface SkillCategory {
   title: string;
   icon: React.ReactNode;
-  skills: string[];
+  skills: Array<{
+    name: string;
+    level: 'Expert' | 'Advanced' | 'Intermediate';
+    years: number;
+    featured?: boolean;
+    icon?: string;
+    relatedSkills?: string[];
+  }>;
 }
 
 interface EducationItem {
   degree: string;
   institution: string;
   year: string;
+  cgpa?: string;
+  coursework?: string[];
+}
+
+interface CertificationItem {
+  title: string;
+  issuer: string;
+  date: string;
+  credentialUrl?: string;
+  icon?: string;
 }
 
 // --- Data Extracted from CV ---
@@ -82,6 +211,8 @@ const experiences: ExperienceItem[] = [
     company: "Akhil Systems Private Ltd",
     period: "March 2017 - Present",
     description: "Leading design and development of enterprise Healthcare IT solutions and scalable database systems. Responsible for architectural decisions, team mentorship, and client delivery across multiple geographies.",
+    techStack: ["C#", "ASP.NET", "SQL Server", "Azure DevOps", ".NET Core", "Web API", "HL7", "Mirth Connect", "RESTful Services","SSRS","Integration APIs"],
+    roleType: ["Leadership", "Architecture", "Full-Stack"],
     achievements: [
       "Architected multi-tenant HIS and EMR systems for 100+ facilities across India, UAE, Qatar, Oman, Nigeria, and Bangladesh.",
       "Integrated critical third-party systems (DHA, QLM, PayStack) reducing transaction processing times by 40%.",
@@ -95,6 +226,8 @@ const experiences: ExperienceItem[] = [
     company: "Adros Systems Private Ltd",
     period: "February 2016 - March 2017",
     description: "Full-stack development of web and desktop applications in .NET, focusing on e-commerce and management systems.",
+    techStack: [".NET Framework", "C#", "SQL Server", "JavaScript", "Bootstrap", "Crystal Reports"],
+    roleType: ["Full-Stack", "Backend"],
     achievements: [
       "Developed 'Club 360' Gym Management System for comprehensive member tracking and attendance.",
       "Built e-commerce platforms (StationeryRus, MapleCraft) with robust PayPal payment gateway integration.",
@@ -106,24 +239,97 @@ const experiences: ExperienceItem[] = [
 const projects: ProjectItem[] = [
   {
     title: "Multi-Tenant HIS/EMR System",
-    category: "Healthcare / Enterprise",
+    category: "Healthcare",
     description: "A scalable Hospital Information System serving 100+ facilities. Features include strict tenant isolation, automated workflows, and RBAC-based access control.",
-    tech: [".NET Core", "SQL Server", "Web API", "Azure"],
-    metrics: "Deployed across 5+ countries"
+    tech: [".NET Core",".NET Framework", "SQL Server", "Web API",  "Azure DevOps"],
+    metrics: "Deployed across 5+ countries",
+    image: null,
+    customIcon: <Heart className="text-red-500" />,
+    startDate: "Mar 2017",
+    endDate: "Present",
+    teamSize: "8-10 developers",
+    difficulty: "Complex",
+    demoLink: "#",
+    githubLink: "#",
+    testimonial: {
+      text: "Transformed our healthcare operations with a robust, scalable platform.",
+      author: "Akhil Systems"
+    }
+  },
+  
+  {
+    title: "Clinical API Orchestration Layer",
+    category: "Backend",
+    description: "Middleware solution to unify clinical, billing, inventory, and claims integrations into a single manageable orchestration layer.",
+    tech: ["C#", "Restful Services", "HL7", "Mirth Connect", "Insurance / Payment Gateway / Third Party APIs"],
+    metrics: "Unified 3+ disparate systems",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0&q=40&w=800&auto=format&fit=crop",
+    startDate: "2017",
+    endDate: "Present",
+    teamSize: "1-3 developers",
+    difficulty: "Complex",
+    demoLink: "#",
+    githubLink: "#",
+    testimonial: {
+      text: "Seamlessly integrated multiple systems without any downtime.",
+      author: "Akhil Systems"
+    }
   },
   {
     title: "Club 360 Management System",
-    category: "SaaS / Management",
+    category: "SaaS",
     description: "A comprehensive management solution for fitness centers including member tracking, package management, and attendance systems.",
     tech: [".NET Framework", "Crystal Reports", "SQL Server"],
-    metrics: "Full lifecycle ownership"
+    metrics: "Full lifecycle ownership",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0&q=40&w=800&auto=format&fit=crop",
+    startDate: "Feb 2016",
+    endDate: "Mar 2017",
+    teamSize: "2 developers",
+    difficulty: "Medium",
+    demoLink: "#",
+    githubLink: "#",
+    testimonial: {
+      text: "Streamlined our gym operations significantly with intuitive features.",
+      author: "Adros Systems Private Ltd"
+    }
   },
   {
-    title: "Clinical API Orchestration Layer",
-    category: "Backend / Integration",
-    description: "Middleware solution to unify clinical, billing, inventory, and claims integrations into a single manageable orchestration layer.",
-    tech: ["C#", "Restful Services", "HL7", "Mirth Connect"],
-    metrics: "Unified 4+ disparate systems"
+    title: "Stationery R Us",
+    category: "SaaS",
+    description: "A one-stop shop e-commerce platform for stationery, office supplies, furniture, and warehouse needs. Serves businesses of all sizes across Australia with thousands of available items.",
+    tech: ["ASP.NET", "SQL Server", "JavaScript", "Bootstrap",  "E-commerce","Inventory Management"],
+    metrics: "Extensive inventory management",
+    image: null,
+    customIcon: <ShoppingCart className="text-blue-600" />,
+    startDate: "2016",
+    endDate: "2017",
+    teamSize: "2 developers",
+    difficulty: "Medium",
+    demoLink: "https://www.stationeryrus.com.au",
+    githubLink: "#",
+    testimonial: {
+      text: "Professional e-commerce platform that increased our online sales significantly.",
+      author: "Adros Systems Private Ltd"
+    }
+  },
+  {
+    title: "Maple Craft Inc.",
+    category: "SaaS",
+    description: "Leading distributor e-commerce platform for smoking accessories throughout Canada. Established in 2007, recognized as a prominent company in their sector.",
+    tech: ["ASP.NET", "SQL Server", "JavaScript", "Bootstrap",  "E-commerce","Inventory Management"],
+    metrics: "Multi-vendor support",
+    image: null,
+    customIcon: <Package className="text-green-600" />,
+    startDate: "2016",
+    endDate: "2017",
+    teamSize: "2 developers",
+    difficulty: "Medium",
+    demoLink: "https://www.maplecraft.ca",
+    githubLink: "#",
+    testimonial: {
+      text: "Robust e-commerce solution that streamlined our distribution operations.",
+      author: "Adros Systems Private Ltd"
+    }
   }
 ];
 
@@ -131,22 +337,53 @@ const skillCategories: SkillCategory[] = [
   {
     title: "Core Languages",
     icon: <Code size={20} />,
-    skills: ["C#", "Core Java", "C++", "C Lang","Basic TypeScript", "SQL Server", "PostgreSQL"]
+    skills: [
+      { name: "C#", level: "Expert", years: 10, featured: true, icon: "#", relatedSkills: ["ASP.NET MVC", ".NET Core", "Web API"] },
+      { name: "SQL Server", level: "Expert", years: 10, featured: true, icon: "📊", relatedSkills: ["PostgreSQL", "Entity Framework"] },
+      { name: "Core Java", level: "Advanced", years: 5, icon: "☕", relatedSkills: ["JavaScript"] },
+      { name: "C++", level: "Advanced", years: 4, icon: "⚙️" },
+      { name: "TypeScript", level: "Intermediate", years: 2, icon: "📘", relatedSkills: ["JavaScript", "React"] },
+      { name: "PostgreSQL", level: "Advanced", years: 4, icon: "🐘" }
+    ]
   },
   {
     title: "Frameworks & Arch",
     icon: <Layers size={20} />,
-    skills: ["ASP.NET MVC", ".NET Core", "ASP.NET WEBFORMS", "Web API", "Entity Framework", "Windows Services", " Basic Windows Presentation Foundation ( WPF )"]
+    skills: [
+      { name: "ASP.NET MVC", level: "Expert", years: 9, featured: true, icon: ".NET", relatedSkills: ["C#", "Entity Framework", "Web API"] },
+      { name: ".NET Core", level: "Expert", years: 8, featured: true, icon: ".NET", relatedSkills: ["C#", "Web API", "Azure"] },
+      { name: "Web API", level: "Expert", years: 8, featured: true, icon: "🔗", relatedSkills: ["REST", "C#", ".NET Core"] },
+      { name: "Entity Framework", level: "Advanced", years: 7, icon: "📦", relatedSkills: ["SQL Server", "C#", ".NET Core"] },
+      { name: "ASP.NET WEBFORMS", level: "Advanced", years: 6, icon: ".NET" },
+      { name: "Windows Services", level: "Advanced", years: 5, icon: "⚙️" },
+      { name: "WPF", level: "Intermediate", years: 3, icon: "🖥️" }
+    ]
   },
   {
     title: "Frontend",
     icon: <Globe size={20} />,
-    skills: ["Basic React", "Basic Angular", "JavaScript", "HTML5/CSS3", "Bootstrap", "Tailwind CSS"]
+    skills: [
+      { name: "JavaScript", level: "Advanced", years: 6, featured: true, icon: "JS", relatedSkills: ["HTML5/CSS3", "React", "Bootstrap"] },
+      { name: "HTML5/CSS3", level: "Advanced", years: 6, featured: true, icon: "🎨", relatedSkills: ["JavaScript", "Bootstrap", "Tailwind CSS"] },
+      { name: "Bootstrap", level: "Advanced", years: 5, icon: "📱", relatedSkills: ["HTML5/CSS3", "JavaScript"] },
+      { name: "Tailwind CSS", level: "Advanced", years: 3, icon: "🎨", relatedSkills: ["HTML5/CSS3", "React"] },
+      { name: "React", level: "Intermediate", years: 2, featured: true, icon: "⚛️", relatedSkills: ["JavaScript", "HTML5/CSS3", "TypeScript"] },
+      { name: "Angular", level: "Intermediate", years: 1, icon: "🔴" }
+    ]
   },
   {
     title: "Tools & DevOps",
     icon: <Terminal size={20} />,
-    skills: ["Azure DevOps", "Git/GitHub", "CI/CD", "Postman", "Fiddler", "SSRS", "Crystal Reports", "Mirth Connect"]
+    skills: [
+      { name: "Azure DevOps", level: "Expert", years: 8, featured: true, icon: "☁️", relatedSkills: ["Git/GitHub", "CI/CD"] },
+      { name: "Git/GitHub", level: "Expert", years: 7, featured: true, icon: "🐙", relatedSkills: ["CI/CD", "Azure DevOps"] },
+      { name: "CI/CD", level: "Advanced", years: 6, icon: "🔄", relatedSkills: ["Azure DevOps", "Git/GitHub"] },
+      { name: "Postman", level: "Advanced", years: 4, icon: "📮" },
+      { name: "SSRS", level: "Advanced", years: 5, icon: "📊" },
+      { name: "Crystal Reports", level: "Advanced", years: 6, icon: "📄" },
+      { name: "Mirth Connect", level: "Advanced", years: 4, icon: "🔗" },
+      { name: "Fiddler", level: "Intermediate", years: 2, icon: "🔍" }
+    ]
   }
 ];
 
@@ -154,16 +391,90 @@ const education: EducationItem[] = [
   {
     degree: "Master of Computer Applications (MCA)",
     institution: "Uttar Pradesh Technical University",
-    year: "2015"
+    year: "2015",
+    cgpa: "7.5",
+    coursework: ["Advanced Database Management", "Web Technologies", "Software Architecture", "Networking"]
   },
   {
     degree: "Bachelor of Computer Applications (BCA)",
     institution: "Chaudhary Charan Singh University",
-    year: "2011"
+    year: "2011",
+    cgpa: "7.8",
+    coursework: ["Data Structures", "Database Design", "Web Development", "Operating Systems"]
+  }
+];
+
+const certifications: CertificationItem[] = [
+  {
+    title: "Oracle Workforce Development",
+    issuer: "Oracle",
+    date: "2020",
+    icon: "📋",
+    credentialUrl: "#"
+  },
+  {
+    title: "Diploma in .NET Technologies",
+    issuer: "Professional Development Institute",
+    date: "2012",
+    icon: ".NET",
+    credentialUrl: "#"
   }
 ];
 
 // --- Components ---
+
+// Optimized Image Component with Lazy Loading
+const OptimizedImage = ({ 
+  src, 
+  alt, 
+  className,
+  placeholderClassName = "bg-gradient-to-br from-slate-600 to-slate-700"
+}: { 
+  src: string | null; 
+  alt: string; 
+  className: string;
+  placeholderClassName?: string;
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (!src || !imgRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && imgRef.current) {
+          imgRef.current.src = src;
+          observer.unobserve(entry.target);
+        }
+      },
+      { rootMargin: '50px' }
+    );
+
+    observer.observe(imgRef.current);
+    return () => observer.disconnect();
+  }, [src]);
+
+  if (hasError || !src) return null;
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Skeleton Loader */}
+      {!isLoaded && (
+        <div className={`absolute inset-0 ${placeholderClassName} animate-pulse z-0`}></div>
+      )}
+      <img
+        ref={imgRef}
+        alt={alt}
+        className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 relative z-10`}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setHasError(true)}
+        loading="lazy"
+      />
+    </div>
+  );
+};
 
 const SectionTitle = ({ title, subtitle, light = false }: { title: string, subtitle?: string, light?: boolean }) => (
   <div className="mb-16 text-center">
@@ -171,12 +482,12 @@ const SectionTitle = ({ title, subtitle, light = false }: { title: string, subti
       {title}
       <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-20 h-1.5 bg-blue-600 rounded-full"></span>
     </h2>
-    {subtitle && <p className={`mt-4 text-lg ${light ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'} max-w-2xl mx-auto`}>{subtitle}</p>}
+    {subtitle && <p className={`mt-4 text-lg ${light ? 'text-slate-600' : 'text-slate-600 dark:text-slate-400'} max-w-2xl mx-auto`}>{subtitle}</p>}
   </div>
 );
 
-const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${className}`}>
+const Card = ({ children, className = "", ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) => (
+  <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${className}`} {...props}>
     {children}
   </div>
 );
@@ -191,12 +502,40 @@ export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [skillSearchQuery, setSkillSearchQuery] = useState('');
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [skillLevelFilter, setSkillLevelFilter] = useState<'All' | 'Expert' | 'Advanced' | 'Intermediate'>('All');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      addToast(`${label} copied to clipboard!`, 'success');
+      setCopiedId(label);
+      setTimeout(() => setCopiedId(null), 2000);
+    }).catch(() => {
+      addToast('Failed to copy', 'error');
+    });
+  };
 
   useEffect(() => {
     let ticking = false;
     const performScrollUpdates = () => {
-      setIsScrolled(window.scrollY > 20);
-      const sections = ['home', 'about', 'experience', 'projects', 'skills', 'contact'];
+      const scrollY = window.scrollY;
+      setIsScrolled(scrollY > 20);
+      setShowBackToTop(scrollY > 400);
+      
+      const sections = ['home', 'about',  'projects', 'experience','skills', 'contact'];
       for (const section of sections) {
         const element = document.getElementById(section);
         if (element) {
@@ -228,22 +567,43 @@ export default function App() {
     }
   };
 
-  const NavLink = ({ to, label }: { to: string, label: string }) => (
-    <button
-      onClick={() => scrollToSection(to)}
-      className={`text-sm font-semibold tracking-wide transition-colors duration-200 uppercase ${
-        activeSection === to 
-          ? 'text-blue-600 dark:text-blue-400' 
-          : 'text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400'
-      }`}
-    >
-      {label}
-    </button>
-  );
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const NavLink = ({ to, label }: { to: string, label: string }) => {
+    const isActive = activeSection === to;
+    return (
+      <button
+        onClick={() => scrollToSection(to)}
+        className={`relative text-sm font-semibold tracking-wide transition-all duration-300 uppercase group py-2 ${
+          isActive 
+            ? 'text-blue-600 dark:text-blue-400' 
+            : 'text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400'
+        }`}
+      >
+        {label}
+        {isActive && (
+          <span className="nav-active absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-blue-600 to-cyan-400 dark:from-blue-400 dark:to-cyan-300 rounded-full"></span>
+        )}
+        {!isActive && (
+          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full group-hover:w-full transition-all duration-300"></span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 selection:bg-blue-200 selection:text-blue-900 overflow-x-hidden">
       
+      {/* Toast Container */}
+      <div className="fixed top-8 right-8 z-[9999] space-y-3 pointer-events-none">
+        {toasts.map(toast => (
+          <div key={toast.id} className="pointer-events-auto">
+            <Toast toast={toast} onClose={removeToast} />
+          </div>
+        ))}
+      </div>
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-md py-3' : 'bg-transparent py-6'}`}>
         <div className="container mx-auto px-6 flex justify-between items-center">
@@ -261,131 +621,287 @@ export default function App() {
             <NavLink to="contact" label="Contact" />
           </div>
 
-          <button className="md:hidden text-slate-700 dark:text-slate-300" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          <button 
+            className="md:hidden text-slate-900 dark:text-slate-300 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-300" 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            <div className="relative w-6 h-6">
+              {isMenuOpen ? (
+                <X size={28} className="hamburger-icon hamburger-open" />
+              ) : (
+                <Menu size={28} className="hamburger-icon" />
+              )}
+            </div>
           </button>
         </div>
 
         {isMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shadow-xl py-6 px-6 flex flex-col space-y-6">
-            <NavLink to="home" label="Home" />
-            <NavLink to="about" label="About" />
-            <NavLink to="experience" label="Experience" />
-            <NavLink to="projects" label="Work" />
-            <NavLink to="skills" label="Skills" />
-            <NavLink to="contact" label="Contact" />
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-800/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-700 shadow-2xl mobile-menu">
+            <div className="px-6 py-8 flex flex-col space-y-2">
+              <button
+                onClick={() => scrollToSection('home')}
+                className={`text-left px-4 py-3 rounded-lg transition-all duration-200 font-semibold uppercase ${
+                  activeSection === 'home'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Home
+              </button>
+              <button
+                onClick={() => scrollToSection('about')}
+                className={`text-left px-4 py-3 rounded-lg transition-all duration-200 font-semibold uppercase ${
+                  activeSection === 'about'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                About
+              </button>
+              <button
+                onClick={() => scrollToSection('experience')}
+                className={`text-left px-4 py-3 rounded-lg transition-all duration-200 font-semibold uppercase ${
+                  activeSection === 'experience'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Experience
+              </button>
+              <button
+                onClick={() => scrollToSection('projects')}
+                className={`text-left px-4 py-3 rounded-lg transition-all duration-200 font-semibold uppercase ${
+                  activeSection === 'projects'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Work
+              </button>
+              <button
+                onClick={() => scrollToSection('skills')}
+                className={`text-left px-4 py-3 rounded-lg transition-all duration-200 font-semibold uppercase ${
+                  activeSection === 'skills'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Skills
+              </button>
+              <button
+                onClick={() => scrollToSection('contact')}
+                className={`text-left px-4 py-3 rounded-lg transition-all duration-200 font-semibold uppercase ${
+                  activeSection === 'contact'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Contact
+              </button>
+            </div>
           </div>
         )}
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-slate-900 text-white">
-        {/* Abstract Background */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/90 to-slate-50 dark:to-slate-900"></div>
+      <section id="home" className="relative min-h-screen flex items-center pt-16 pb-16 overflow-hidden bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:bg-slate-900 dark:text-white text-slate-900">
+        {/* Animated Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"></div>
         
-        <div className="container mx-auto px-6 relative z-10 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8 animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-semibold rounded-full backdrop-blur-sm">
-              <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-              Principal Software Developer
+        {/* Decorative Circles - Smaller */}
+        <div className="absolute top-32 right-32 w-48 h-48 bg-blue-200/30 rounded-full blur-3xl animate-float dark:bg-blue-500/10"></div>
+        <div className="absolute bottom-32 left-32 w-48 h-48 bg-cyan-200/30 rounded-full blur-3xl dark:bg-cyan-500/10"></div>
+        
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="grid lg:grid-cols-5 gap-8 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-3 space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-500/10 border border-blue-300 dark:border-blue-500/20 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-full backdrop-blur-sm animate-stagger-1">
+                <span className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></span>
+                Principal Software Developer
+              </div>
+              
+              <h1 className="text-5xl lg:text-6xl font-bold tracking-tight leading-tight animate-stagger-2 text-slate-900 dark:text-white">
+                Designing <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-cyan-300">
+                  Scalable Solutions
+                </span>
+              </h1>
+              
+              <p className="text-lg text-slate-700 dark:text-slate-300 max-w-lg leading-relaxed animate-stagger-3">
+                I architect high-performance .NET applications and enterprise systems that power 100+ facilities across 5 countries.
+              </p>
+              
+              <div className="flex flex-wrap gap-4 pt-2 animate-stagger-4">
+                <button 
+                  onClick={() => scrollToSection('projects')} 
+                  aria-label="View my featured projects"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all flex items-center gap-2 transform hover:-translate-y-1 shadow-lg shadow-blue-600/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                >
+                  View My Work
+                  <ChevronDown size={18} className="-rotate-90" />
+                </button>
+                <a 
+                  href="/CV_Mohit_Sangwan_2026.pdf" 
+                  download 
+                  aria-label="Download my CV"
+                  className="px-6 py-3 bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 text-slate-900 dark:text-slate-200 font-semibold rounded-lg transition-all flex items-center gap-2 cursor-pointer hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                >
+                  <Download size={18} />
+                  Download CV
+                </a>
+              </div>
+              
+              <div className="pt-2 flex gap-4 animate-stagger-1" style={{ animationDelay: '0.5s' }}>
+                <a 
+                  href={personalInfo.linkedin} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  aria-label="Visit my LinkedIn profile"
+                  className="p-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-blue-200 dark:hover:bg-blue-600/30 border border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all transform hover:scale-110 duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                >
+                  <Linkedin size={20} className="text-slate-700 dark:text-slate-300" />
+                </a>
+                <a 
+                  href={`mailto:${personalInfo.email}`} 
+                  aria-label="Send me an email"
+                  className="p-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-blue-200 dark:hover:bg-blue-600/30 border border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all transform hover:scale-110 duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                >
+                  <Mail size={20} className="text-slate-700 dark:text-slate-300" />
+                </a>
+                <a 
+                  href="https://github.com" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  aria-label="Visit my GitHub profile"
+                  className="p-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-blue-200 dark:hover:bg-blue-600/30 border border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all transform hover:scale-110 duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                >
+                  <Github size={20} className="text-slate-700 dark:text-slate-300" />
+                </a>
+              </div>
             </div>
-            
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight leading-tight">
-              Designing Scalable <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-                Healthcare Solutions
-              </span>
-            </h1>
-            
-            <p className="text-xl text-slate-300 font-light max-w-xl leading-relaxed">
-              I architect high-performance .NET applications and enterprise systems that power 100+ facilities across 5 countries.
-            </p>
-            
-            <div className="flex flex-wrap gap-4 pt-4">
-              <button onClick={() => scrollToSection('projects')} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 transform hover:-translate-y-1">
-                View My Work
-                <ChevronDown size={18} className="-rotate-90" />
-              </button>
-              <a href="/CV_Mohit_Sangwan_2026.pdf" download className="px-8 py-4 bg-transparent border border-slate-600 hover:border-slate-400 text-slate-200 hover:text-white font-semibold rounded-lg transition-all flex items-center gap-2 cursor-pointer">
-                <Download size={18} />
-                Download CV
-              </a>
-            </div>
-            
-            <div className="pt-8 flex gap-6 text-slate-400">
-              <a href={personalInfo.linkedin} className="hover:text-blue-400 transition-transform hover:scale-110"><Linkedin size={28} /></a>
-              <a href={`mailto:${personalInfo.email}`} className="hover:text-blue-400 transition-transform hover:scale-110"><Mail size={28} /></a>
-              <a href="https://github.com" className="hover:text-blue-400 transition-transform hover:scale-110"><Github size={28} /></a>
-            </div>
-          </div>
 
-          <div className="hidden lg:block relative">
-             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-30 animate-pulse"></div>
-             <div className="relative bg-slate-800/80 backdrop-blur-xl p-8 rounded-2xl border border-slate-700 shadow-2xl">
-               <div className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-                 <h3 className="text-xl font-bold text-slate-100">Impact at a Glance</h3>
-                 <Server className="text-blue-400" />
-               </div>
-               <div className="grid grid-cols-2 gap-6">
-                 {keyMetrics.map((metric, idx) => (
-                   <div key={idx} className="p-4 bg-slate-900/50 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-colors">
-                     <div className="text-blue-400 mb-2">{metric.icon}</div>
-                     <div className="text-3xl font-bold text-white mb-1">{metric.value}</div>
-                     <div className="text-sm text-slate-400">{metric.label}</div>
-                   </div>
-                 ))}
-               </div>
-             </div>
+            {/* Right Side - Profile & Stats */}
+            <div className="hidden lg:flex lg:col-span-2 flex-col gap-4 items-center">
+              {/* Profile Image - 50% Smaller */}
+              <div className="relative w-full max-w-[200px] animate-slide-in-right">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-25"></div>
+                <div className="relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300">
+                  <OptimizedImage 
+                    src="/profile-image.jpg" 
+                    alt="Mohit Sangwan" 
+                    className="w-full h-auto object-cover rounded-xl transform hover:scale-105 transition-transform duration-500" 
+                  />
+                </div>
+              </div>
+
+              {/* Mini Stats - Cards Below Profile */}
+              <div className="w-full max-w-sm animate-slide-in-right" style={{ animationDelay: '0.2s' }}>
+                <div className="grid grid-cols-2 gap-2">
+                  {keyMetrics.map((metric, idx) => {
+                    const AnimatedMetric = () => {
+                      const { displayValue, elementRef } = useAnimatedCounter(metric.value, 1500);
+                      const getDisplayText = () => {
+                        if (typeof metric.value === 'string') {
+                          return metric.value.includes('%') ? `${displayValue}%` : `${displayValue}+`;
+                        }
+                        return displayValue;
+                      };
+                      return (
+                        <div ref={elementRef} className="text-sm font-bold text-slate-900 dark:text-white">
+                          {getDisplayText()}
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div 
+                        key={idx} 
+                        className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800/50 dark:to-slate-800/20 p-3 rounded-lg border border-blue-200 dark:border-slate-700 shadow-md hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
+                        style={{ animationDelay: `${0.4 + idx * 0.1}s` }}
+                      >
+                        {/* Background accent */}
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-br from-blue-200/30 to-indigo-200/30 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-full blur-lg -mr-4 -mt-4 group-hover:scale-125 transition-transform duration-300"></div>
+                        
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                          <div className="text-xl mb-1 group-hover:scale-110 transition-transform duration-300">{metric.icon}</div>
+                          <AnimatedMetric />
+                          <div className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2">{metric.label}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </div> 
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-24 bg-white dark:bg-slate-900">
+      <section id="about" className="py-14 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-6">
           <SectionTitle title="About Me" subtitle="Bridging the gap between complex business requirements and scalable technical solutions." />
           
-          <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-blue-100 dark:bg-blue-900/20 rounded-xl transform -rotate-3"></div>
-              <img 
-                src="https://images.unsplash.com/photo-1549692520-acc6669e2f0c?q=80&w=1974&auto=format&fit=crop" 
-                alt="Working" 
-                className="relative rounded-xl shadow-lg w-full h-[400px] object-cover"
-              />
+          <div className="grid md:grid-cols-2 gap-6 items-center max-w-6xl mx-auto">
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl transform -rotate-3 group-hover:rotate-0 transition-transform duration-300"></div>
+              <div className="relative rounded-xl shadow-lg w-full h-[400px] bg-gradient-to-br from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 overflow-hidden group-hover:shadow-2xl group-hover:shadow-blue-500/20 transition-all duration-300">
+                {/* Minimal Professional Design */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 animate-rotate-icon">
+                    <Code size={48} className="text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">Full-Stack Development</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 text-center">Building robust enterprise solutions</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-8">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
                 10+ Years of Engineering Excellence
               </h3>
-              <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-                As a Principal Software Developer, I don't just write code; I design systems that last. My journey has taken me from building local management systems to architecting international healthcare platforms that process thousands of transactions daily.
+              <p className="text-lg text-slate-600 dark:text-slate-300 leading-8">
+                As a Principal Software Developer, I don't just write code; I design systems that last. My journey has taken me from building local management systems to architecting international <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">healthcare platforms</span> that process thousands of transactions daily.
               </p>
-              <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-                I specialize in the <strong>Microsoft .NET ecosystem</strong>, but my true skill lies in problem-solving—optimizing SQL queries for 40% faster reports, integrating fragmented APIs into a unified orchestration layer, and mentoring teams to adopt CI/CD best practices.
+              <p className="text-lg text-slate-600 dark:text-slate-300 leading-8">
+                I specialize in the <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">Microsoft .NET ecosystem</span>, but my true skill lies in <span className="font-bold text-slate-900 dark:text-white">problem-solving</span>—optimizing <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full text-sm font-semibold">SQL queries</span> for 40% faster reports, integrating fragmented APIs, and mentoring teams.
               </p>
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Users size={20} /></div>
-                  <span className="font-medium">Team Leadership</span>
+              <div className="grid grid-cols-2 gap-5 pt-6">
+                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.1s' }}>
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Users size={20} /></div>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Team Leadership</span>
                 </div>
-                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Code size={20} /></div>
-                  <span className="font-medium">Development</span>
+                 <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.2s' }}>
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Code size={20} /></div>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Development</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Database size={20} /></div>
-                  <span className="font-medium">SQL Optimization</span>
+                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.3s' }}>
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Database size={20} /></div>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">SQL Optimization</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Globe size={20} /></div>
-                  <span className="font-medium">Global Delivery</span>
+                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.4s' }}>
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Globe size={20} /></div>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Global Delivery</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600"><Layers size={20} /></div>
-                  <span className="font-medium">System Design</span>
+                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.5s' }}>
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Layers size={20} /></div>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">System Design</span>
                 </div>
+              </div>
+              
+              {/* CTA Button */}
+              <div className="pt-6 flex gap-4 animate-expertise-item" style={{ animationDelay: '0.6s' }}>
+                <a href="/CV_Mohit_Sangwan_2026.pdf" download className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 transform hover:-translate-y-1">
+                  <Download size={18} />
+                  Download Full Resume
+                </a>
+                <button onClick={() => scrollToSection('contact')} className="px-6 py-3 bg-transparent border-2 border-blue-600 hover:border-blue-700 text-blue-600 dark:text-blue-400 hover:text-blue-700 font-semibold rounded-lg transition-all flex items-center gap-2 transform hover:-translate-y-1">
+                  <Mail size={18} />
+                  Get in Touch
+                </button>
               </div>
             </div>
           </div>
@@ -393,27 +909,109 @@ export default function App() {
       </section>
 
       {/* Featured Projects Section (New) */}
-      <section id="projects" className="py-24 bg-slate-50 dark:bg-slate-800/50">
+      <section id="projects" className="py-14 bg-slate-50 dark:bg-slate-800/50">
         <div className="container mx-auto px-6">
           <SectionTitle title="Featured Projects" subtitle="Key initiatives that delivered measurable business value." />
           
-          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {projects.map((proj, idx) => (
-              <Card key={idx} className="flex flex-col h-full overflow-hidden group">
-                <div className="h-48 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
+          {/* Category Filter */}
+          <div className="flex flex-wrap justify-center items-center gap-3 mb-8">
+            <div className="flex flex-wrap justify-center gap-3">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 ${
+                  selectedCategory === null
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                    : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-500'
+                }`}
+              >
+                All Projects
+              </button>
+              {['Healthcare', 'SaaS', 'Backend'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 ${
+                    selectedCategory === cat
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                      : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-500'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            
+            {/* Project Counter */}
+            <div className="text-sm font-semibold text-slate-800 dark:text-slate-400 bg-white dark:bg-slate-700 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600">
+              {projects.filter(p => !selectedCategory || p.category === selectedCategory).length} of {projects.length} projects
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            {projects
+              .filter(proj => !selectedCategory || proj.category === selectedCategory)
+              .map((proj, idx) => (
+              <Card key={idx} className="flex flex-col h-full overflow-hidden group hover:shadow-2xl hover:shadow-blue-500/15 hover:-translate-y-2 transition-all duration-300 animate-card-entrance" style={{ animationDelay: `${idx * 0.1}s` }}>
+                  <div className="h-48 bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700 relative overflow-hidden group-hover:from-blue-300 group-hover:to-cyan-300 dark:group-hover:from-blue-600 dark:group-hover:to-cyan-600 transition-colors duration-300">
+                  {proj.image ? (
+                    <OptimizedImage 
+                      src={proj.image} 
+                      alt={proj.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  ) : proj.customIcon ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                        {proj.customIcon}
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{proj.category}</p>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <Database className="w-16 h-16 text-slate-400 dark:text-slate-500 mx-auto mb-2 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent z-10"></div>
-                  {/* Placeholder patterns since we don't have real screenshots */}
-                  <div className={`absolute inset-0 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-repeat`}></div>
+                  <div className="absolute top-4 right-4 z-20">
+                    {proj.difficulty && (
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        proj.difficulty === 'Complex' ? 'bg-red-500/90 text-white' :
+                        proj.difficulty === 'Medium' ? 'bg-yellow-500/90 text-white' :
+                        'bg-green-500/90 text-white'
+                      }`}>
+                        {proj.difficulty}
+                      </span>
+                    )}
+                  </div>
                   <div className="absolute bottom-4 left-4 z-20">
                     <span className="text-blue-300 text-xs font-bold uppercase tracking-wider">{proj.category}</span>
                     <h3 className="text-xl font-bold text-white mt-1">{proj.title}</h3>
                   </div>
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
-                  <p className="text-slate-600 dark:text-slate-300 mb-6 flex-1 text-sm leading-relaxed">
+                  <p className="text-slate-700 dark:text-slate-300 mb-6 flex-1 text-sm leading-relaxed">
                     {proj.description}
                   </p>
                   
+                  {/* Project Details */}
+                  <div className="mb-6 space-y-3 text-xs text-slate-700 dark:text-slate-400">
+                    {proj.startDate && (
+                      <div className="flex items-center gap-2">
+                        <Clock size={14} className="text-blue-500" />
+                        <span>{proj.startDate} {proj.endDate ? `- ${proj.endDate}` : ''}</span>
+                      </div>
+                    )}
+                    {proj.teamSize && (
+                      <div className="flex items-center gap-2">
+                        <Users size={14} className="text-blue-500" />
+                        <span>{proj.teamSize}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Metrics */}
                   {proj.metrics && (
                     <div className="mb-4 py-2 px-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900 rounded-lg flex items-center gap-2">
                       <TrendingUp size={16} className="text-green-600 dark:text-green-400" />
@@ -421,12 +1019,49 @@ export default function App() {
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2 mt-auto">
+                  {/* Testimonial */}
+                  {proj.testimonial && (
+                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900 rounded-lg">
+                      <p className="text-xs italic text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">{`"${proj.testimonial.text}"`}</p>
+                      {proj.testimonial.author && (
+                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">— {proj.testimonial.author}</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Enhanced Tech Badges */}
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {proj.tech.map((t, i) => (
-                      <span key={i} className="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded">
+                      <span key={i} className="text-xs font-bold px-3 py-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/50 dark:to-cyan-900/50 text-blue-900 dark:text-blue-300 rounded-full border border-blue-300 dark:border-blue-700 hover:border-blue-600 dark:hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-200 cursor-default inline-block">
                         {t}
                       </span>
                     ))}
+                  </div>
+                  
+                  {/* Project Links */}
+                  <div className="flex gap-3 mt-auto pt-3 border-t border-slate-200 dark:border-slate-700">
+                    {proj.demoLink && proj.demoLink !== '#' && (
+                      <a 
+                        href={proj.demoLink} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 transform hover:scale-105"
+                      >
+                        <ExternalLink size={16} />
+                        Demo
+                      </a>
+                    )}
+                    {proj.githubLink && proj.githubLink !== '#' && (
+                      <a 
+                        href={proj.githubLink} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="flex-1 px-4 py-2 border-2 border-slate-400 dark:border-slate-600 hover:border-blue-600 dark:hover:border-blue-400 text-slate-900 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 transform hover:scale-105"
+                      >
+                        <Github size={16} />
+                        Code
+                      </a>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -436,30 +1071,50 @@ export default function App() {
       </section>
 
       {/* Experience Section */}
-      <section id="experience" className="py-24 bg-white dark:bg-slate-900">
+      <section id="experience" className="py-14 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-6">
           <SectionTitle title="Experience Timeline" subtitle="A progressive track record of increasing responsibility." />
           
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto relative">
+            {/* Timeline Progress Bar */}
+            <div className="hidden sm:block absolute left-24 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 via-blue-400 to-transparent rounded-full" style={{ height: `${((experiences.length - 1) / experiences.length) * 100}%` }}></div>
+            
             {experiences.map((exp, idx) => (
-              <div key={exp.id} className="relative pl-8 sm:pl-32 py-6 group">
+              <div key={exp.id} className="relative pl-8 sm:pl-32 py-10 group timeline-item-enter" style={{ animationDelay: `${idx * 0.15}s` }}>
                 {/* Date for Desktop */}
                 <div className="hidden sm:flex flex-col items-end absolute left-0 top-6 w-28 text-right pr-4">
                   <span className="text-sm font-bold text-slate-900 dark:text-white block pr-4">{exp.period.split('-')[0]}</span>
-                  <span className="text-xs text-slate-500">{exp.period.split('-')[1] || 'Present'}</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-500">{exp.period.split('-')[1] || 'Present'}</span>
                 </div>
 
                 {/* Vertical Line */}
                 <div className="absolute left-0 sm:left-24 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700 group-last:bottom-auto group-last:h-6"></div>
                 
                 {/* Dot */}
-                <div className="absolute left-[-5px] sm:left-[91px] top-8 w-3 h-3 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 ring-4 ring-blue-50 dark:ring-blue-900/20"></div>
+                <div className="absolute left-[-5px] sm:left-[91px] top-8 w-3 h-3 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 ring-4 ring-blue-50 dark:ring-blue-900/20 timeline-dot-hover transition-all cursor-pointer hover:ring-blue-100 dark:hover:ring-blue-800/40"></div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">{exp.role}</h3>
-                      <div className="flex items-center gap-2 text-blue-600 font-medium">
+                <div className="bg-gradient-to-br from-slate-50 to-slate-25 dark:from-slate-800/70 dark:to-slate-900/40 p-6 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/15 hover:-translate-y-2 transition-all duration-500 group-hover:bg-white dark:group-hover:bg-slate-800/90 backdrop-blur-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{exp.role}</h3>
+                        {exp.roleType && exp.roleType.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {exp.roleType.map((role, i) => (
+                              <span key={i} className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-all duration-300 ${
+                                role === 'Leadership' 
+                                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
+                                  : role === 'Architecture'
+                                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                              }`}>
+                                {role}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium">
                         <Briefcase size={16} />
                         {exp.company}
                       </div>
@@ -468,15 +1123,26 @@ export default function App() {
                       {exp.period}
                     </span>
                   </div>
+
+                  {/* Tech Stack */}
+                  {exp.techStack && exp.techStack.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {exp.techStack.map((tech, i) => (
+                        <span key={i} className="text-xs bg-slate-200 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-full font-medium hover:bg-slate-300 dark:hover:bg-slate-600/50 transition-colors duration-300">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   
-                  <p className="text-slate-600 dark:text-slate-300 mb-4 text-sm">
+                  <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
                     {exp.description}
                   </p>
                   
-                  <ul className="space-y-3">
+                  <ul className="space-y-4">
                     {exp.achievements.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
-                        <CheckCircle size={16} className="mt-0.5 text-blue-500 shrink-0" />
+                      <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400 leading-relaxed achievement-item-enter group/achievement hover:text-slate-900 dark:hover:text-slate-200 transition-colors duration-300" style={{ animationDelay: `${(idx * 0.15) + (i * 0.1)}s` }}>
+                        <CheckCircle size={16} className="mt-0.5 text-blue-500 shrink-0 group-hover/achievement:text-blue-400 transition-colors duration-300 group-hover/achievement:scale-110" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -489,7 +1155,7 @@ export default function App() {
       </section>
 
       {/* Skills & Certs */}
-      <section id="skills" className="py-24 bg-slate-900 text-white relative overflow-hidden">
+      <section id="skills" className="py-14 bg-gradient-to-b from-slate-50 to-white dark:bg-slate-900 dark:text-white text-slate-900 relative overflow-hidden">
         {/* Decorative Circles */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-600/10 rounded-full blur-3xl"></div>
@@ -497,157 +1163,713 @@ export default function App() {
         <div className="container mx-auto px-6 relative z-10">
           <SectionTitle title="Technical Arsenal" subtitle="The tools I use to build world-class software." light={true} />
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
-            {skillCategories.map((cat, idx) => (
-              <div key={idx} className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-slate-700 hover:border-blue-500 transition-colors">
-                <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-blue-400 mb-6 shadow-inner">
-                  {cat.icon}
-                </div>
-                <h3 className="text-lg font-bold mb-4">{cat.title}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {cat.skills.map((skill, sIdx) => (
-                    <span key={sIdx} className="px-3 py-1 bg-slate-700/50 text-slate-300 text-sm rounded border border-slate-600/50 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all cursor-default">
-                      {skill}
-                    </span>
+          {/* Skills Stats & Featured Section */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto">
+            {/* Top Skills Highlight */}
+            <div className="md:col-span-2 bg-gradient-to-br from-blue-100 to-cyan-100 backdrop-blur-sm p-6 rounded-xl border border-blue-300 hover:border-blue-400 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-blue-700">
+                <TrendingUp size={20} /> Top 5 Skills
+              </h3>
+              <div className="space-y-3">
+                {skillCategories
+                  .flatMap(cat => cat.skills.filter(s => s.featured))
+                  .sort((a, b) => b.years - a.years)
+                  .slice(0, 5)
+                  .map((skill, idx) => (
+                    <div key={idx} className="flex items-center gap-3 animate-slide-in-right group/topskill" style={{ animationDelay: `${idx * 0.1}s` }}>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <span className="text-sm text-slate-800">{skill.name}</span>
+                      <span className="text-xs text-blue-700 ml-auto font-semibold">{skill.years}+ yrs</span>
+                    </div>
                   ))}
+              </div>
+            </div>
+
+            {/* Skill Stats */}
+            <div className="bg-gradient-to-br from-slate-100 to-slate-50 backdrop-blur-sm p-6 rounded-xl border border-slate-300 hover:border-blue-400 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+              <h3 className="text-lg font-bold mb-4 text-slate-800">Distribution</h3>
+              <div className="space-y-3">
+                {(() => {
+                  const allSkills = skillCategories.flatMap(cat => cat.skills);
+                  const expertCount = allSkills.filter(s => s.level === 'Expert').length;
+                  const advancedCount = allSkills.filter(s => s.level === 'Advanced').length;
+                  const intermediateCount = allSkills.filter(s => s.level === 'Intermediate').length;
+                  const total = allSkills.length;
+                  
+                  return (
+                    <>
+                      <div className="text-sm">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-red-700 font-semibold">Expert</span>
+                          <span className="text-red-700 font-bold">{((expertCount/total)*100).toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-red-600 to-red-500 rounded-full" style={{ width: `${(expertCount/total)*100}%` }}></div>
+                        </div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-yellow-700 font-semibold">Advanced</span>
+                          <span className="text-yellow-700 font-bold">{((advancedCount/total)*100).toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full" style={{ width: `${(advancedCount/total)*100}%` }}></div>
+                        </div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-green-700 font-semibold">Intermediate</span>
+                          <span className="text-green-700 font-bold">{((intermediateCount/total)*100).toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-green-600 to-green-500 rounded-full" style={{ width: `${(intermediateCount/total)*100}%` }}></div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Skill Search & Filter */}
+          <div className="max-w-2xl mx-auto mb-12 space-y-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search skills... (e.g., 'C#', 'React', 'Azure')"
+                value={skillSearchQuery}
+                onChange={(e) => setSkillSearchQuery(e.target.value.toLowerCase())}
+                className="w-full px-6 py-3 bg-white border-2 border-slate-300 text-slate-900 placeholder-slate-500 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                aria-label="Search skills"
+              />
+              <Code className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+            </div>
+
+            {/* Skill Level Filter */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {(['All', 'Expert', 'Advanced', 'Intermediate'] as const).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setSkillLevelFilter(level)}
+                  className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 ${
+                    skillLevelFilter === level
+                      ? level === 'Expert'
+                        ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                        : level === 'Advanced'
+                        ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/30'
+                        : level === 'Intermediate'
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                        : 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                  }`}
+                  aria-pressed={skillLevelFilter === level}
+                  aria-label={`Filter skills by ${level} level`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+
+            {skillSearchQuery && (
+              <div className="text-center mt-4 text-sm text-slate-700 font-medium">
+                Found {
+                  skillCategories
+                    .flatMap(cat => cat.skills.filter(s => 
+                      (skillLevelFilter === 'All' || s.level === skillLevelFilter) &&
+                      (s.name.toLowerCase().includes(skillSearchQuery) ||
+                      s.relatedSkills?.some(rs => rs.toLowerCase().includes(skillSearchQuery)))
+                    )).length
+                } matching skills
+              </div>
+            )}
+          </div>
+          
+          {/* Skills Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-14">
+            {skillCategories.map((cat, idx) => {
+              const filteredSkills = cat.skills.filter(skill =>
+                (skillLevelFilter === 'All' || skill.level === skillLevelFilter) &&
+                (!skillSearchQuery ||
+                skill.name.toLowerCase().includes(skillSearchQuery) ||
+                skill.relatedSkills?.some(rs => rs.toLowerCase().includes(skillSearchQuery)))
+              );
+
+              if (skillSearchQuery && filteredSkills.length === 0) return null;
+
+              return (
+                <div key={idx} className="bg-gradient-to-br from-slate-100 to-slate-50 backdrop-blur-sm p-6 rounded-xl border border-slate-300 hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-1 group animate-fade-in" role="region" aria-label={`${cat.title} skills`}>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-700 mb-6 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                    {cat.icon}
+                  </div>
+                  <h3 className="text-lg font-bold mb-4 text-slate-900">{cat.title}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {filteredSkills.map((skill, sIdx) => {
+                      const levelColors = {
+                        Expert: "bg-gradient-to-r from-red-500 to-red-400",
+                        Advanced: "bg-gradient-to-r from-amber-500 to-amber-400",
+                        Intermediate: "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                      };
+                      const levelTextColors = {
+                        Expert: "text-white",
+                        Advanced: "text-slate-900",
+                        Intermediate: "text-white"
+                      };
+                      const levelPercent = {
+                        Expert: 100,
+                        Advanced: 65,
+                        Intermediate: 40
+                      };
+                      const progressBarBg = {
+                        Expert: "bg-red-200 dark:bg-red-900/40",
+                        Advanced: "bg-amber-200 dark:bg-amber-900/40",
+                        Intermediate: "bg-emerald-200 dark:bg-emerald-900/40"
+                      };
+
+                      return (
+                        <div
+                          key={sIdx}
+                          className="animate-skill-pop group/skill flex flex-col w-full"
+                          style={{ animationDelay: `${sIdx * 0.05}s` }}
+                        >
+                          <div className={`${levelColors[skill.level]} ${levelTextColors[skill.level]} text-xs font-bold rounded-lg border border-opacity-50 transition-all duration-300 hover:shadow-lg hover:shadow-current hover:scale-110 cursor-default px-3 py-2 flex items-center justify-between gap-2`}>
+                            <span className="flex items-center gap-1.5">
+                              {skill.icon && <span className="text-sm">{skill.icon}</span>}
+                              {skill.name}
+                            </span>
+                            {skill.featured && <span className="text-yellow-300">⭐</span>}
+                          </div>
+                          {/* Proficiency Progress Bar */}
+                          <div className={`mt-1.5 w-full hidden group-hover/skill:block ${progressBarBg[skill.level]} rounded-full h-1.5 overflow-hidden`}>
+                            <div 
+                              className={`h-full ${levelColors[skill.level]} transition-all duration-300`}
+                              style={{ width: `${levelPercent[skill.level]}%` }}
+                            ></div>
+                          </div>
+                          {/* Skill Details Tooltip */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover/skill:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50 border border-slate-700 pointer-events-none">
+                            <div className="font-semibold">{skill.level}</div>
+                            <div className="text-slate-300">{skill.years}+ years experience</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Related Skills Network */}
+          <div className="max-w-5xl mx-auto mb-12 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800/50 dark:to-slate-800/30 p-6 rounded-2xl border border-blue-200 dark:border-slate-700">
+            <h3 className="text-lg font-bold mb-6 text-center text-slate-900 dark:text-white">Skill Relationships</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {Array.from(new Set(
+                skillCategories
+                  .flatMap(cat => cat.skills)
+                  .filter(s => s.relatedSkills && s.relatedSkills.length > 0)
+                  .flatMap(s => s.name)
+              )).slice(0, 4).map((skillName, idx) => {
+                const skill = skillCategories
+                  .flatMap(cat => cat.skills)
+                  .find(s => s.name === skillName);
+                
+                return skill && skill.relatedSkills ? (
+                  <div key={idx} className="group bg-white dark:bg-slate-800/60 p-5 rounded-lg border border-blue-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 animate-slide-in-right" style={{ animationDelay: `${idx * 0.1}s` }}>
+                    <div className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400"></span>
+                      {skill.name}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {skill.relatedSkills.map((related, rIdx) => (
+                        <span key={rIdx} className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-slate-800 dark:text-blue-200 text-xs px-3 py-1.5 rounded-full border border-blue-300 dark:border-blue-700 font-medium hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-200">
+                          → {related}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <h3 className="flex items-center gap-2 text-xl font-bold mb-8 text-slate-900 dark:text-white">
+              <GraduationCap size={24} className="text-blue-600 dark:text-blue-400" /> Education
+            </h3>
+            <div className="grid md:grid-cols-2 gap-5">
+              {education.map((edu, idx) => (
+                <div 
+                  key={idx} 
+                  className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800/50 dark:to-slate-800/20 p-5 rounded-xl border border-blue-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 animate-card-entrance overflow-hidden"
+                  style={{ animationDelay: `${idx * 0.15}s` }}
+                >
+                  {/* Background accent */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-200/20 to-indigo-200/20 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-300"></div>
+                  
+                  <div className="relative z-10">
+                    {/* Year badge */}
+                    <div className="inline-block mb-3 px-3 py-1 bg-blue-600 dark:bg-blue-500/30 text-white dark:text-blue-300 rounded-full text-xs font-bold">
+                      {edu.year}
+                    </div>
+                    
+                    {/* Degree */}
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1 leading-snug">
+                      {edu.degree}
+                    </h4>
+                    
+                    {/* Institution */}
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mb-3 flex items-center gap-2">
+                      <span className="text-sm">🏫</span>
+                      {edu.institution}
+                    </p>
+                    
+                    {/* CGPA */}
+                    {edu.cgpa && (
+                      <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <span className="text-xs font-bold text-blue-700 dark:text-blue-300">CGPA: {edu.cgpa}</span>
+                        <span className="text-sm">⭐</span>
+                      </div>
+                    )}
+                    
+                    {/* Coursework */}
+                    {edu.coursework && edu.coursework.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-blue-200 dark:border-slate-700">
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-400 mb-2 uppercase tracking-wider">Coursework</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {edu.coursework.map((course, i) => (
+                            <span 
+                              key={i} 
+                              className="text-xs px-2 py-1 bg-white dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 rounded-full border border-blue-200 dark:border-slate-600 font-medium hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200"
+                            >
+                              {course}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Certifications Section */}
+      <section className="py-14 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <div className="container mx-auto px-6">
+          <SectionTitle title="Certifications" subtitle="Professional certifications and industry-recognized credentials." />
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            {certifications.map((cert, idx) => (
+              <div key={idx} className="group relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/20 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 animate-card-entrance" style={{ animationDelay: `${idx * 0.1}s` }}>
+                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">{cert.icon}</div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{cert.title}</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">{cert.issuer}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">{cert.date}</span>
+                  {cert.credentialUrl && cert.credentialUrl !== '#' && (
+                    <a href={cert.credentialUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      View →
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto pt-10 border-t border-slate-800">
-            <div>
-              <h3 className="flex items-center gap-2 text-xl font-bold mb-6 text-blue-400">
-                <Award /> Certifications
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 bg-slate-800/30 p-4 rounded-lg border border-slate-700">
-                  <div className="text-orange-500 font-bold text-2xl">01</div>
-                  <div>
-                    <div className="font-semibold text-white">Oracle Workforce Development</div>
-                    <div className="text-sm text-slate-400">2020</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 bg-slate-800/30 p-4 rounded-lg border border-slate-700">
-                  <div className="text-blue-500 font-bold text-2xl">02</div>
-                  <div>
-                    <div className="font-semibold text-white">Diploma in .NET Technologies</div>
-                    <div className="text-sm text-slate-400">2012</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="flex items-center gap-2 text-xl font-bold mb-6 text-green-400">
-                <GraduationCap /> Education
-              </h3>
-               {education.map((edu, idx) => (
-                 <div key={idx} className="mb-6 last:mb-0">
-                   <div className="text-lg font-semibold text-white">{edu.degree}</div>
-                   <div className="text-slate-400">{edu.institution}</div>
-                   <div className="text-sm text-slate-500 mt-1">{edu.year}</div>
-                 </div>
-               ))}
-            </div>
           </div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-24 bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto bg-slate-50 dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
-            
-            <div className="md:w-1/2 bg-blue-600 p-12 text-white flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-              <div className="relative z-10">
-                <h3 className="text-3xl font-bold mb-4">Let's build something scalable.</h3>
-                <p className="text-blue-100 mb-8">
-                  I'm currently available for consulting engagements and senior leadership roles.
-                </p>
+      <section id="contact" className="py-14 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200/20 dark:bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-200/20 dark:bg-cyan-600/10 rounded-full blur-3xl -ml-20 -mb-20"></div>
+
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="mb-12 text-center">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">Ready to Work Together?</h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+              Let's discuss how I can help elevate your next project or bring your vision to life with scalable solutions.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            {/* Main Contact Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-slate-200 dark:border-slate-700">
+              {/* Left Side - Info & Contact Details */}
+              <div className="md:w-1/2 bg-gradient-to-br from-blue-600 to-cyan-600 p-12 text-white flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-500/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <Mail size={20} />
-                    </div>
-                    <div>
-                      <div className="text-xs text-blue-200 uppercase font-semibold">Email</div>
-                      <div className="font-medium">{personalInfo.email}</div>
-                    </div>
-                  </div>
+                <div className="relative z-10">
+                  <h3 className="text-4xl font-bold mb-4">Let's Create Something Great</h3>
+                  <p className="text-blue-100 text-lg mb-10 leading-relaxed">
+                    I'm available for consulting engagements, senior leadership roles, and innovative technical challenges. Let's discuss how we can transform your vision.
+                  </p>
                   
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-500/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <Phone size={20} />
+                  <div className="space-y-5">
+                    {/* Email - Copy to Clipboard */}
+                    <div
+                      onClick={() => {
+                        navigator.clipboard.writeText(personalInfo.email);
+                        addToast('Email copied to clipboard!', 'success');
+                      }}
+                      className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 cursor-pointer transition-all duration-300 group"
+                    >
+                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <Mail size={24} className="text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs text-blue-100 uppercase font-semibold tracking-wider">Email</div>
+                        <div className="font-bold text-lg group-hover:text-blue-200 transition-colors">{personalInfo.email}</div>
+                      </div>
+                      <Copy size={18} className="text-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
-                    <div>
-                      <div className="text-xs text-blue-200 uppercase font-semibold">Phone</div>
-                      <div className="font-medium">{personalInfo.phone}</div>
+                    
+                    {/* Phone - Copy to Clipboard */}
+                    <div
+                      onClick={() => {
+                        navigator.clipboard.writeText(personalInfo.phone);
+                        addToast('Phone copied to clipboard!', 'success');
+                      }}
+                      className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 cursor-pointer transition-all duration-300 group"
+                    >
+                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <Phone size={24} className="text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs text-blue-100 uppercase font-semibold tracking-wider">Phone</div>
+                        <div className="font-bold text-lg group-hover:text-blue-200 transition-colors">{personalInfo.phone}</div>
+                      </div>
+                      <Copy size={18} className="text-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </div>
+                    
+                    {/* Location */}
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                        <Globe size={24} className="text-white" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-blue-100 uppercase font-semibold tracking-wider">Location</div>
+                        <div className="font-bold text-lg">{personalInfo.location}</div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-500/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <Linkedin size={20} />
-                    </div>
-                    <div>
-                      <div className="text-xs text-blue-200 uppercase font-semibold">LinkedIn</div>
-                      <a href={personalInfo.linkedin} target="_blank" rel="noreferrer" className="font-medium hover:underline">Connect Profile</a>
-                    </div>
-                  </div>
+                </div>
+                
+                {/* Social Links */}
+                <div className="relative z-10 mt-12 flex gap-3">
+                  <a
+                    href={`mailto:${personalInfo.email}`}
+                    className="w-12 h-12 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    title="Send Email"
+                  >
+                    <Mail size={22} className="text-white" />
+                  </a>
+                  <a
+                    href={`tel:${personalInfo.phone}`}
+                    className="w-12 h-12 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    title="Call"
+                  >
+                    <Phone size={22} className="text-white" />
+                  </a>
+                  <a
+                    href={personalInfo.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-12 h-12 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    title="Connect on LinkedIn"
+                  >
+                    <Linkedin size={22} className="text-white" />
+                  </a>
                 </div>
               </div>
-              
-              <div className="mt-12 relative z-10">
-                 <div className="text-sm text-blue-200">Based in</div>
-                 <div className="text-xl font-bold">{personalInfo.location}</div>
+
+              {/* Right Side - Quick Actions & Benefits */}
+              <div className="md:w-1/2 p-12 bg-white dark:bg-slate-800 flex flex-col">
+                <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">How We'll Connect</h3>
+                
+                <div className="space-y-4 mb-10">
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900">
+                    <Mail size={24} className="text-blue-600 dark:text-blue-400 shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white mb-1">Quick Email</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Most reliable way to reach me. I respond within 24 hours.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-900">
+                    <Phone size={24} className="text-cyan-600 dark:text-cyan-400 shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white mb-1">Direct Call</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">For urgent matters or quick discussions, feel free to call.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900">
+                    <Linkedin size={24} className="text-blue-600 dark:text-blue-400 shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white mb-1">LinkedIn</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Connect with me for professional networking and updates.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA Buttons */}
+                <div className="flex flex-col gap-3 mt-auto">
+                  <a
+                    href={`mailto:${personalInfo.email}?subject=Let's%20Discuss%20Your%20Project`}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-1"
+                  >
+                    <Mail size={18} />
+                    Email Me
+                  </a>
+                  
+                  <a
+                    href={`tel:${personalInfo.phone}`}
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-1"
+                  >
+                    <Phone size={18} />
+                    Call Me
+                  </a>
+                </div>
               </div>
             </div>
-
-            <div className="hidden md:w-1/2 p-12 bg-white dark:bg-slate-800">
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Send a Message</h3>
-              <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
-                  <input type="text" className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition-all" placeholder="John Doe" />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
-                  <input type="email" className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition-all" placeholder="john@example.com" />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Project Details</label>
-                  <textarea rows={4} className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition-all" placeholder="Tell me about your project needs..."></textarea>
-                </div>
-                <button className="w-full py-4 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg">
-                  Send Inquiry
-                </button>
-              </form>
-            </div>
-
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-900">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-4 md:mb-0">
-            <span className="text-2xl font-bold text-white tracking-tight">MS.</span>
-            <p className="text-sm mt-2 max-w-xs">Building the digital future of healthcare and enterprise systems.</p>
+      <footer className="bg-gradient-to-b from-slate-950 to-slate-900 text-slate-400 border-t border-slate-800">
+        <div className="container mx-auto px-6 py-16">
+          {/* Main Footer Content */}
+          <div className="grid md:grid-cols-4 gap-12 mb-12">
+            {/* Brand & Description */}
+            <div className="md:col-span-1">
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="bg-gradient-to-br from-blue-600 to-cyan-600 text-white w-10 h-10 flex items-center justify-center rounded-lg font-bold text-lg">M</span>
+                  <span className="text-2xl font-bold text-white tracking-tight">Sangwan</span>
+                </div>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Principal Software Developer specializing in scalable enterprise solutions and healthcare IT systems.
+                </p>
+              </div>
+              
+              {/* Social Links */}
+              <div className="flex gap-3 mt-6">
+                <a
+                  href={personalInfo.linkedin}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-400 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 border border-slate-700 hover:border-blue-500"
+                  title="LinkedIn"
+                  aria-label="LinkedIn Profile"
+                >
+                  <Linkedin size={18} />
+                </a>
+                <a
+                  href={`mailto:${personalInfo.email}`}
+                  className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-400 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 border border-slate-700 hover:border-blue-500"
+                  title="Email"
+                  aria-label="Send Email"
+                >
+                  <Mail size={18} />
+                </a>
+                <a
+                  href={`tel:${personalInfo.phone}`}
+                  className="w-10 h-10 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-400 hover:text-white flex items-center justify-center transition-all duration-300 hover:scale-110 border border-slate-700 hover:border-cyan-500"
+                  title="Phone"
+                  aria-label="Call"
+                >
+                  <Phone size={18} />
+                </a>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <Code size={20} className="text-blue-400" />
+                Navigation
+              </h3>
+              <ul className="space-y-3">
+                <li>
+                  <button
+                    onClick={() => scrollToSection('home')}
+                    className="text-slate-400 hover:text-blue-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    Home
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => scrollToSection('about')}
+                    className="text-slate-400 hover:text-blue-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    About
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => scrollToSection('experience')}
+                    className="text-slate-400 hover:text-blue-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    Experience
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => scrollToSection('projects')}
+                    className="text-slate-400 hover:text-blue-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    Projects
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <Layers size={20} className="text-cyan-400" />
+                Resources
+              </h3>
+              <ul className="space-y-3">
+                <li>
+                  <button
+                    onClick={() => scrollToSection('skills')}
+                    className="text-slate-400 hover:text-cyan-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    Skills
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href="/CV_Mohit_Sangwan_2026.pdf"
+                    download
+                    className="text-slate-400 hover:text-cyan-400 transition-colors duration-200 text-sm font-medium inline-flex items-center gap-1"
+                  >
+                    Download CV
+                    <Download size={14} />
+                  </a>
+                </li>
+                <li>
+                  <button
+                    onClick={() => scrollToSection('contact')}
+                    className="text-slate-400 hover:text-cyan-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    Contact
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href={personalInfo.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-slate-400 hover:text-cyan-400 transition-colors duration-200 text-sm font-medium"
+                  >
+                    LinkedIn
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Connect */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <Briefcase size={20} className="text-green-400" />
+                Get in Touch
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Email</p>
+                  <button
+                    onClick={() => copyToClipboard(personalInfo.email, 'Email')}
+                    className="text-slate-300 hover:text-blue-400 transition-all text-sm font-medium break-all flex items-center gap-2 group p-2 -ml-2 rounded hover:bg-slate-800/50"
+                    title="Click to copy email"
+                    aria-label={`Copy email: ${personalInfo.email}`}
+                  >
+                    {copiedId === 'Email' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-slate-500 group-hover:text-blue-400" />}
+                    {personalInfo.email}
+                  </button>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Phone</p>
+                  <button
+                    onClick={() => copyToClipboard(personalInfo.phone, 'Phone')}
+                    className="text-slate-300 hover:text-cyan-400 transition-all text-sm font-medium flex items-center gap-2 group p-2 -ml-2 rounded hover:bg-slate-800/50"
+                    title="Click to copy phone"
+                    aria-label={`Copy phone: ${personalInfo.phone}`}
+                  >
+                    {copiedId === 'Phone' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-slate-500 group-hover:text-cyan-400" />}
+                    {personalInfo.phone}
+                  </button>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Location</p>
+                  <p className="text-slate-300 text-sm font-medium">{personalInfo.location}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-6">
-             <a href="#" target='_blank' className="hover:text-white transition-colors">""</a>
-             <a href={personalInfo.linkedin} target='_blank' className="hover:text-white transition-colors">LinkedIn</a>
-             <a href="#" target='_blank' className="hover:text-white transition-colors">""</a>
+
+          {/* Divider */}
+          <div className="border-t border-slate-800 pt-8 mb-8">
+            <div className="grid md:grid-cols-2 gap-4 md:gap-8 items-center">
+              {/* Copyright */}
+              <div className="text-center md:text-left">
+                <p className="text-sm text-slate-500">
+                  &copy; {new Date().getFullYear()} <span className="text-white font-semibold">Mohit Sangwan</span>. All rights reserved.
+                </p>
+              </div>
+
+              {/* Footer Links */}
+              <div className="text-center md:text-right flex justify-center md:justify-end gap-6 text-sm">
+                <button
+                  onClick={scrollToTop}
+                  className="text-slate-400 hover:text-blue-400 transition-colors duration-200 font-medium inline-flex items-center gap-2 group"
+                >
+                  Back to Top
+                  <ChevronDown size={16} className="transform rotate-180 group-hover:-translate-y-1 transition-transform" />
+                </button>
+
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="container mx-auto px-6 mt-8 pt-8 border-t border-slate-900 text-center text-sm text-slate-600">
-          &copy; {new Date().getFullYear()} Mohit Sangwan. All rights reserved.
+
+          {/* Bottom Section - Stats */}
+          <div className="bg-gradient-to-r from-blue-600/5 to-cyan-600/5 border border-slate-800/50 rounded-xl p-6">
+            <div className="grid md:grid-cols-3 gap-6 text-center">
+              <div>
+                <p className="text-3xl font-bold text-white mb-1">10+</p>
+                <p className="text-sm text-slate-400">Years Experience</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-white mb-1">100+</p>
+                <p className="text-sm text-slate-400">Facilities Managed</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-white mb-1">5+</p>
+                <p className="text-sm text-slate-400">Countries Served</p>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center transition-all duration-300 hover:scale-110 z-40 animate-slide-in-right group border-2 border-blue-500/50 hover:border-blue-400"
+          title="Back to top"
+          aria-label="Back to top"
+        >
+          <ChevronDown size={24} className="transform rotate-180 group-hover:-translate-y-1 transition-transform duration-300" />
+        </button>
+      )}
     </div>
   );
 }

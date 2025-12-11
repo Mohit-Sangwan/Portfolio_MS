@@ -7,6 +7,21 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom'],
+          'lucide': ['lucide-react']
+        }
+      }
+    }
   }
 })
