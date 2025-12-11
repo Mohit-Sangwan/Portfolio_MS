@@ -1,0 +1,21 @@
+{
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mohit-Sangwan/Portfolio_MS.git"
+  },
+  "homepage": "https://github.com/Mohit-Sangwan/Portfolio_MS",
+  "bugs": {
+    "url": "https://github.com/Mohit-Sangwan/Portfolio_MS/issues"
+  },
+  "keywords": [
+    "portfolio",
+    "react",
+    "typescript",
+    "tailwind",
+    "software-developer"
+  ]
+}
