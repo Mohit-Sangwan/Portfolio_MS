@@ -840,69 +840,144 @@ export default function App() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-14 bg-white dark:bg-slate-900">
+      <section id="about" className="py-14 bg-gradient-to-br from-white via-blue-50/40 to-white dark:from-slate-900 dark:via-blue-900/10 dark:to-slate-900">
         <div className="container mx-auto px-6">
           <SectionTitle title="About Me" subtitle="Bridging the gap between complex business requirements and scalable technical solutions." />
           
-          <div className="grid md:grid-cols-2 gap-6 items-center max-w-6xl mx-auto">
-            <div className="relative group">
-              <div className="absolute -inset-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl transform -rotate-3 group-hover:rotate-0 transition-transform duration-300"></div>
-              <div className="relative rounded-xl shadow-lg w-full h-[400px] bg-gradient-to-br from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 overflow-hidden group-hover:shadow-2xl group-hover:shadow-blue-500/20 transition-all duration-300">
-                {/* Minimal Professional Design */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 animate-rotate-icon">
-                    <Code size={48} className="text-white" />
+          {/* Top Section - Key Stats with Animated Counters */}
+          <div className="grid md:grid-cols-4 gap-4 max-w-6xl mx-auto mb-12">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 rounded-xl p-6 border border-blue-200 dark:border-blue-800 text-center hover:shadow-lg hover:shadow-blue-500/10 transition-all">
+              <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">10+</div>
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Years Experience</div>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-900/10 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800 text-center hover:shadow-lg hover:shadow-emerald-500/10 transition-all">
+              <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 mb-2">100+</div>
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Facilities Managed</div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10 rounded-xl p-6 border border-purple-200 dark:border-purple-800 text-center hover:shadow-lg hover:shadow-purple-500/10 transition-all">
+              <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">40%</div>
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Performance Boost</div>
+            </div>
+            <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-900/10 rounded-xl p-6 border border-cyan-200 dark:border-cyan-800 text-center hover:shadow-lg hover:shadow-cyan-500/10 transition-all">
+              <div className="text-4xl font-bold text-cyan-600 dark:text-cyan-400 mb-2">5+</div>
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Countries Served</div>
+            </div>
+          </div>
+
+          {/* Main Content - 2 Columns */}
+          <div className="grid lg:grid-cols-2 gap-12 items-start max-w-6xl mx-auto mb-12">
+            {/* Left: Career Timeline */}
+            <div className="space-y-6">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">My Journey</h3>
+              
+              {/* Timeline */}
+              <div className="space-y-6">
+                {[
+                  { year: '2014-2018', title: 'Developer', desc: 'Started career building management systems' },
+                  { year: '2018-2021', title: 'Senior Developer', desc: 'Led team initiatives, mentored juniors' },
+                  { year: '2021-2024', title: 'Lead Developer', desc: 'Architected healthcare solutions for 100+ facilities' },
+                  { year: '2024-Now', title: 'Principal Developer', desc: 'Strategic solutions & team leadership' }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex gap-4 animate-slide-in-right" style={{ animationDelay: `${idx * 0.1}s` }}>
+                    <div className="flex flex-col items-center">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg">
+                        {idx + 1}
+                      </div>
+                      {idx < 3 && <div className="w-1 h-12 bg-gradient-to-b from-blue-500 to-cyan-500 mt-2"></div>}
+                    </div>
+                    <div className="pb-6 pt-2">
+                      <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{item.year}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white">{item.title}</div>
+                      <div className="text-slate-600 dark:text-slate-400 text-sm">{item.desc}</div>
+                    </div>
                   </div>
-                  <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">Full-Stack Development</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 text-center">Building robust enterprise solutions</p>
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
+                ))}
               </div>
             </div>
-            <div className="space-y-8">
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                10+ Years of Engineering Excellence
-              </h3>
-              <p className="text-lg text-slate-600 dark:text-slate-300 leading-8">
-                As a Principal Software Developer, I don't just write code; I design systems that last. My journey has taken me from building local management systems to architecting international <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">healthcare platforms</span> that process thousands of transactions daily.
-              </p>
-              <p className="text-lg text-slate-600 dark:text-slate-300 leading-8">
-                I specialize in the <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">Microsoft .NET ecosystem</span>, but my true skill lies in <span className="font-bold text-slate-900 dark:text-white">problem-solving</span>—optimizing <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full text-sm font-semibold">SQL queries</span> for 40% faster reports, integrating fragmented APIs, and mentoring teams.
-              </p>
-              <div className="grid grid-cols-2 gap-5 pt-6">
-                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.1s' }}>
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Users size={20} /></div>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Team Leadership</span>
-                </div>
-                 <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.2s' }}>
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Code size={20} /></div>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Development</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.3s' }}>
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Database size={20} /></div>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">SQL Optimization</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.4s' }}>
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Globe size={20} /></div>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Global Delivery</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors duration-200 animate-expertise-item" style={{ animationDelay: '0.5s' }}>
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 group-hover:scale-110 transition-transform duration-200"><Layers size={20} /></div>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">System Design</span>
-                </div>
+
+            {/* Right: Story & Skills */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Who I Am</h3>
+                <p className="text-slate-700 dark:text-slate-300 leading-7 mb-4">
+                  As a <span className="font-bold text-blue-600 dark:text-blue-400">Principal Software Developer</span>, I transform complex business challenges into elegant, scalable solutions. My career spans from building local systems to architecting <span className="font-bold text-blue-600 dark:text-blue-400">enterprise healthcare platforms</span> trusted by 100+ facilities globally.
+                </p>
+                <p className="text-slate-700 dark:text-slate-300 leading-7">
+                  I'm passionate about <span className="font-bold text-emerald-600 dark:text-emerald-400">SQL optimization</span>, <span className="font-bold text-emerald-600 dark:text-emerald-400">system architecture</span>, and <span className="font-bold text-emerald-600 dark:text-emerald-400">team leadership</span>. I don't just code—I mentor, strategize, and deliver measurable impact.
+                </p>
               </div>
-              
-              {/* CTA Button */}
-              <div className="pt-6 flex gap-4 animate-expertise-item" style={{ animationDelay: '0.6s' }}>
-                <a href="/CV_Mohit_Sangwan_2026.pdf" download className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 transform hover:-translate-y-1">
-                  <Download size={18} />
-                  Download Full Resume
-                </a>
-                <button onClick={() => scrollToSection('contact')} className="px-6 py-3 bg-transparent border-2 border-blue-600 hover:border-blue-700 text-blue-600 dark:text-blue-400 hover:text-blue-700 font-semibold rounded-lg transition-all flex items-center gap-2 transform hover:-translate-y-1">
-                  <Mail size={18} />
-                  Get in Touch
-                </button>
+
+              {/* Expandable Skills Sections */}
+              <div className="space-y-3">
+                <details className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer">
+                  <summary className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
+                    <span className="flex items-center gap-2">
+                      <Code size={18} className="text-blue-600 dark:text-blue-400" />
+                      Core Technologies
+                    </span>
+                    <span className="transform group-open:rotate-180 transition-transform">➤</span>
+                  </summary>
+                  <div className="mt-4 text-slate-700 dark:text-slate-400 text-sm grid grid-cols-2 gap-2">
+                    <div>• C# & .NET</div>
+                    <div>• SQL Server</div>
+                    <div>• Azure & Cloud</div>
+                    <div>• React & TypeScript</div>
+                    <div>• API Design</div>
+                    <div>• Docker & Kubernetes</div>
+                  </div>
+                </details>
+
+                <details className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer">
+                  <summary className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
+                    <span className="flex items-center gap-2">
+                      <Users size={18} className="text-emerald-600 dark:text-emerald-400" />
+                      Leadership & Soft Skills
+                    </span>
+                    <span className="transform group-open:rotate-180 transition-transform">➤</span>
+                  </summary>
+                  <div className="mt-4 text-slate-700 dark:text-slate-400 text-sm grid grid-cols-2 gap-2">
+                    <div>• Team Leadership</div>
+                    <div>• Mentoring</div>
+                    <div>• Strategic Planning</div>
+                    <div>• Agile/Scrum</div>
+                    <div>• Problem Solving</div>
+                    <div>• Cross-functional Collaboration</div>
+                  </div>
+                </details>
+
+                <details className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:border-purple-400 dark:hover:border-purple-500 transition-all cursor-pointer">
+                  <summary className="flex items-center justify-between font-semibold text-slate-900 dark:text-white">
+                    <span className="flex items-center gap-2">
+                      <TrendingUp size={18} className="text-purple-600 dark:text-purple-400" />
+                      Achievements & Impact
+                    </span>
+                    <span className="transform group-open:rotate-180 transition-transform">➤</span>
+                  </summary>
+                  <div className="mt-4 text-slate-700 dark:text-slate-400 text-sm space-y-2">
+                    <div>✓ Optimized SQL queries achieving 40% performance improvement</div>
+                    <div>✓ Architected multi-tenant healthcare platform for 100+ facilities</div>
+                    <div>✓ Reduced deployment cycle by 30% through CI/CD implementation</div>
+                    <div>✓ Mentored 4+ developers into senior roles</div>
+                    <div>✓ Led global team delivering solutions to 5+ countries</div>
+                  </div>
+                </details>
               </div>
+            </div>
+          </div>
+
+          {/* Bottom CTA Section */}
+          <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600/10 to-cyan-600/10 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-8 text-center">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Ready to work together?</h3>
+            <p className="text-slate-700 dark:text-slate-300 mb-6">Let's discuss how I can help solve your challenges.</p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <a href="/CV_Mohit_Sangwan_2026.pdf" download className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                <Download size={18} />
+                Download Resume
+              </a>
+              <button onClick={() => scrollToSection('contact')} className="px-6 py-3 bg-white dark:bg-slate-800 border-2 border-blue-600 dark:border-blue-400 hover:border-blue-700 dark:hover:border-blue-500 text-blue-600 dark:text-blue-400 hover:text-blue-700 font-semibold rounded-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                <Mail size={18} />
+                Get in Touch
+              </button>
             </div>
           </div>
         </div>
