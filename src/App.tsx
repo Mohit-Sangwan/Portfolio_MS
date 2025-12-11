@@ -1065,64 +1065,57 @@ export default function App() {
                     <h3 className="text-xl font-bold text-white mt-1">{proj.title}</h3>
                   </div>
                 </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <p className="text-slate-700 dark:text-slate-300 mb-6 flex-1 text-sm leading-relaxed">
+                <div className="p-4 flex-1 flex flex-col">
+                  <p className="text-slate-700 dark:text-slate-300 mb-3 flex-1 text-xs leading-relaxed line-clamp-2">
                     {proj.description}
                   </p>
                   
-                  {/* Project Details */}
-                  <div className="mb-6 space-y-3 text-xs text-slate-700 dark:text-slate-400">
+                  {/* Project Details - Compact */}
+                  <div className="mb-3 space-y-1 text-xs text-slate-600 dark:text-slate-400 flex flex-wrap gap-3">
                     {proj.startDate && (
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} className="text-blue-500" />
-                        <span>{proj.startDate} {proj.endDate ? `- ${proj.endDate}` : ''}</span>
+                      <div className="flex items-center gap-1">
+                        <Clock size={12} className="text-blue-500" />
+                        <span>{proj.startDate}</span>
                       </div>
                     )}
                     {proj.teamSize && (
-                      <div className="flex items-center gap-2">
-                        <Users size={14} className="text-blue-500" />
+                      <div className="flex items-center gap-1">
+                        <Users size={12} className="text-blue-500" />
                         <span>{proj.teamSize}</span>
                       </div>
                     )}
                   </div>
                   
-                  {/* Metrics */}
+                  {/* Metrics - Compact */}
                   {proj.metrics && (
-                    <div className="mb-4 py-2 px-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900 rounded-lg flex items-center gap-2">
-                      <TrendingUp size={16} className="text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-semibold text-green-700 dark:text-green-300">{proj.metrics}</span>
-                    </div>
-                  )}
-
-                  {/* Testimonial */}
-                  {proj.testimonial && (
-                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900 rounded-lg">
-                      <p className="text-xs italic text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">{`"${proj.testimonial.text}"`}</p>
-                      {proj.testimonial.author && (
-                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">— {proj.testimonial.author}</p>
-                      )}
+                    <div className="mb-2 py-1 px-2 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900 rounded text-xs font-semibold text-green-700 dark:text-green-300 inline-flex items-center gap-1 w-fit">
+                      <TrendingUp size={12} className="text-green-600 dark:text-green-400" />
+                      {proj.metrics}
                     </div>
                   )}
                   
-                  {/* Enhanced Tech Badges */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {proj.tech.map((t, i) => (
-                      <span key={i} className="text-xs font-bold px-3 py-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/50 dark:to-cyan-900/50 text-blue-900 dark:text-blue-300 rounded-full border border-blue-300 dark:border-blue-700 hover:border-blue-600 dark:hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-200 cursor-default inline-block">
+                  {/* Enhanced Tech Badges - Compact */}
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {proj.tech.slice(0, 3).map((t, i) => (
+                      <span key={i} className="text-xs font-bold px-2 py-0.5 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/50 dark:to-cyan-900/50 text-blue-900 dark:text-blue-300 rounded-full border border-blue-300 dark:border-blue-700 inline-block">
                         {t}
                       </span>
                     ))}
+                    {proj.tech.length > 3 && (
+                      <span className="text-xs font-bold px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full">+{proj.tech.length - 3}</span>
+                    )}
                   </div>
                   
-                  {/* Project Links */}
-                  <div className="flex gap-3 mt-auto pt-3 border-t border-slate-200 dark:border-slate-700">
+                  {/* Project Links - Compact */}
+                  <div className="flex gap-2 mt-auto pt-2 border-t border-slate-200 dark:border-slate-700">
                     {proj.demoLink && proj.demoLink !== '#' && (
                       <a 
                         href={proj.demoLink} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 transform hover:scale-105"
+                        className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-all flex items-center justify-center gap-1 transform hover:scale-105"
                       >
-                        <ExternalLink size={16} />
+                        <ExternalLink size={14} />
                         Demo
                       </a>
                     )}
@@ -1131,9 +1124,9 @@ export default function App() {
                         href={proj.githubLink} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="flex-1 px-4 py-2 border-2 border-slate-400 dark:border-slate-600 hover:border-blue-600 dark:hover:border-blue-400 text-slate-900 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 transform hover:scale-105"
+                        className="flex-1 px-3 py-1.5 border border-slate-400 dark:border-slate-600 hover:border-blue-600 dark:hover:border-blue-400 text-slate-900 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 text-xs font-semibold rounded transition-all flex items-center justify-center gap-1 transform hover:scale-105"
                       >
-                        <Github size={16} />
+                        <Github size={14} />
                         Code
                       </a>
                     )}
@@ -1150,33 +1143,29 @@ export default function App() {
         <div className="container mx-auto px-6">
           <SectionTitle title="Experience Timeline" subtitle="A progressive track record of increasing responsibility." />
           
-          <div className="max-w-4xl mx-auto relative">
-            {/* Timeline Progress Bar */}
-            <div className="hidden sm:block absolute left-24 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 via-blue-400 to-transparent rounded-full" style={{ height: `${((experiences.length - 1) / experiences.length) * 100}%` }}></div>
+          {/* Desktop Timeline View */}
+          <div className="hidden md:block max-w-5xl mx-auto relative">
+            <div className="absolute left-24 top-8 bottom-0 w-1 bg-gradient-to-b from-blue-600 via-blue-400 to-transparent rounded-full"></div>
             
             {experiences.map((exp, idx) => (
-              <div key={exp.id} className="relative pl-8 sm:pl-32 py-10 group timeline-item-enter" style={{ animationDelay: `${idx * 0.15}s` }}>
-                {/* Date for Desktop */}
-                <div className="hidden sm:flex flex-col items-end absolute left-0 top-6 w-28 text-right pr-4">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white block pr-4">{exp.period.split('-')[0]}</span>
-                  <span className="text-xs text-slate-700 dark:text-slate-500">{exp.period.split('-')[1] || 'Present'}</span>
+              <div key={exp.id} className="relative pl-8 sm:pl-32 py-6 group timeline-item-enter" style={{ animationDelay: `${idx * 0.15}s` }}>
+                <div className="hidden sm:flex flex-col items-end absolute left-0 top-4 w-28 text-right pr-4">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block pr-4">{exp.period.split('-')[0]}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-500">{exp.period.split('-')[1] || 'Present'}</span>
                 </div>
 
-                {/* Vertical Line */}
                 <div className="absolute left-0 sm:left-24 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700 group-last:bottom-auto group-last:h-6"></div>
-                
-                {/* Dot */}
-                <div className="absolute left-[-5px] sm:left-[91px] top-8 w-3 h-3 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 ring-4 ring-blue-50 dark:ring-blue-900/20 timeline-dot-hover transition-all cursor-pointer hover:ring-blue-100 dark:hover:ring-blue-800/40"></div>
+                <div className="absolute left-[-5px] sm:left-[91px] top-6 w-3 h-3 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 ring-4 ring-blue-50 dark:ring-blue-900/20 transition-all hover:ring-blue-100 dark:hover:ring-blue-800/40"></div>
 
-                <div className="bg-gradient-to-br from-slate-50 to-slate-25 dark:from-slate-800/70 dark:to-slate-900/40 p-6 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/15 hover:-translate-y-2 transition-all duration-500 group-hover:bg-white dark:group-hover:bg-slate-800/90 backdrop-blur-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{exp.role}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">{exp.role}</h3>
                         {exp.roleType && exp.roleType.length > 0 && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {exp.roleType.map((role, i) => (
-                              <span key={i} className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-all duration-300 ${
+                          <div className="flex items-center gap-1">
+                            {exp.roleType.slice(0, 1).map((role, i) => (
+                              <span key={i} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                                 role === 'Leadership' 
                                   ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
                                   : role === 'Architecture'
@@ -1189,35 +1178,31 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium">
-                        <Briefcase size={16} />
+                      <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium text-sm">
+                        <Briefcase size={14} />
                         {exp.company}
                       </div>
                     </div>
-                    <span className="sm:hidden mt-2 text-sm text-slate-500 bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 self-start">
-                      {exp.period}
-                    </span>
                   </div>
 
-                  {/* Tech Stack */}
                   {exp.techStack && exp.techStack.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-2">
+                    <div className="mb-2 flex flex-wrap gap-1">
                       {exp.techStack.map((tech, i) => (
-                        <span key={i} className="text-xs bg-slate-200 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-full font-medium hover:bg-slate-300 dark:hover:bg-slate-600/50 transition-colors duration-300">
+                        <span key={i} className="text-xs bg-slate-200 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">
                           {tech}
                         </span>
                       ))}
                     </div>
                   )}
                   
-                  <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-snug mb-3">
                     {exp.description}
                   </p>
                   
-                  <ul className="space-y-4">
+                  <ul className="space-y-1.5">
                     {exp.achievements.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400 leading-relaxed achievement-item-enter group/achievement hover:text-slate-900 dark:hover:text-slate-200 transition-colors duration-300" style={{ animationDelay: `${(idx * 0.15) + (i * 0.1)}s` }}>
-                        <CheckCircle size={16} className="mt-0.5 text-blue-500 shrink-0 group-hover/achievement:text-blue-400 transition-colors duration-300 group-hover/achievement:scale-110" />
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 achievement-item-enter" style={{ animationDelay: `${(idx * 0.15) + (i * 0.1)}s` }}>
+                        <CheckCircle size={14} className="mt-0.5 text-blue-500 shrink-0" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -1225,6 +1210,47 @@ export default function App() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Mobile Horizontal Scroll View */}
+          <div className="md:hidden overflow-x-auto pb-4 -mx-6 px-6 snap-x">
+            <div className="flex gap-4 min-w-min">
+              {experiences.map((exp, idx) => (
+                <div key={exp.id} className="flex-shrink-0 w-80 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-lg border border-slate-200 dark:border-slate-700 snap-start timeline-item-enter" style={{ animationDelay: `${idx * 0.15}s` }}>
+                  <div className="mb-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">{exp.role}</h3>
+                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium text-sm mt-1">
+                      <Briefcase size={14} />
+                      {exp.company}
+                    </div>
+                    <span className="text-xs text-slate-600 dark:text-slate-500 mt-1 block">{exp.period}</span>
+                  </div>
+
+                  {exp.techStack && exp.techStack.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {exp.techStack.map((tech, i) => (
+                        <span key={i} className="text-xs bg-slate-200 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <p className="text-slate-600 dark:text-slate-400 text-xs leading-snug mb-2">
+                    {exp.description}
+                  </p>
+                  
+                  <ul className="space-y-1">
+                    {exp.achievements.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                        <CheckCircle size={12} className="mt-0.5 text-blue-500 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -1235,35 +1261,36 @@ export default function App() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-600/10 rounded-full blur-3xl"></div>
 
-        <div className="container mx-auto px-6 relative z-10">
-          <SectionTitle title="Technical Arsenal" subtitle="The tools I use to build world-class software." light={true} />
+        <div className="container mx-auto px-6 relative z-10" role="region" aria-labelledby="skills-heading">
+          <h2 id="skills-heading" >Technical Arsenal - Skills and Expertise</h2>
+          <SectionTitle title="Technical Arsenal" subtitle="The tools I use to build world-class software." light={false} />
           
           {/* Skills Stats & Featured Section */}
-          <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto" role="region" aria-label="Skills overview and statistics">
             {/* Top Skills Highlight */}
-            <div className="md:col-span-2 bg-gradient-to-br from-blue-100 to-cyan-100 backdrop-blur-sm p-6 rounded-xl border border-blue-300 hover:border-blue-400 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-blue-700">
-                <TrendingUp size={20} /> Top 5 Skills
+            <div className="md:col-span-2 bg-gradient-to-br from-blue-100 to-cyan-100 backdrop-blur-sm p-6 rounded-xl border border-blue-300 hover:border-blue-400 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20" role="region" aria-label="Top 5 most proficient skills">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-blue-700" id="top-skills">
+                <TrendingUp size={20} aria-hidden="true" /> Top 5 Skills
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-3" role="list">
                 {skillCategories
                   .flatMap(cat => cat.skills.filter(s => s.featured))
                   .sort((a, b) => b.years - a.years)
                   .slice(0, 5)
                   .map((skill, idx) => (
-                    <div key={idx} className="flex items-center gap-3 animate-slide-in-right group/topskill" style={{ animationDelay: `${idx * 0.1}s` }}>
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-sm text-slate-800">{skill.name}</span>
-                      <span className="text-xs text-blue-700 ml-auto font-semibold">{skill.years}+ yrs</span>
+                    <div key={idx} className="flex items-center gap-3 animate-slide-in-right group/topskill" style={{ animationDelay: `${idx * 0.1}s` }} role="listitem">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full" aria-hidden="true"></div>
+                      <span className="text-sm text-slate-800" title={`${skill.name}: ${skill.years}+ years of experience`}>{skill.name}</span>
+                      <span className="text-xs text-blue-700 ml-auto font-semibold" aria-label={`${skill.years} or more years of experience`}>{skill.years}+ yrs</span>
                     </div>
                   ))}
               </div>
             </div>
 
             {/* Skill Stats */}
-            <div className="bg-gradient-to-br from-slate-100 to-slate-50 backdrop-blur-sm p-6 rounded-xl border border-slate-300 hover:border-blue-400 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-              <h3 className="text-lg font-bold mb-4 text-slate-800">Distribution</h3>
-              <div className="space-y-3">
+            <div className="bg-gradient-to-br from-slate-100 to-slate-50 backdrop-blur-sm p-6 rounded-xl border border-slate-300 hover:border-blue-400 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10" role="region" aria-label="Skills distribution by proficiency level">
+              <h3 className="text-lg font-bold mb-4 text-slate-800" id="skill-distribution">Distribution</h3>
+              <div className="space-y-3" role="list" aria-describedby="skill-distribution">
                 {(() => {
                   const allSkills = skillCategories.flatMap(cat => cat.skills);
                   const expertCount = allSkills.filter(s => s.level === 'Expert').length;
@@ -1273,30 +1300,30 @@ export default function App() {
                   
                   return (
                     <>
-                      <div className="text-sm">
+                      <div className="text-sm" role="listitem" aria-label={`Expert level: ${((expertCount/total)*100).toFixed(0)}% of skills`}>
                         <div className="flex justify-between mb-1">
                           <span className="text-red-700 font-semibold">Expert</span>
-                          <span className="text-red-700 font-bold">{((expertCount/total)*100).toFixed(0)}%</span>
+                          <span className="text-red-700 font-bold" aria-live="polite">{((expertCount/total)*100).toFixed(0)}%</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round((expertCount/total)*100)} aria-valuemin={0} aria-valuemax={100} aria-label="Expert skills percentage">
                           <div className="h-full bg-gradient-to-r from-red-600 to-red-500 rounded-full" style={{ width: `${(expertCount/total)*100}%` }}></div>
                         </div>
                       </div>
-                      <div className="text-sm">
+                      <div className="text-sm" role="listitem" aria-label={`Advanced level: ${((advancedCount/total)*100).toFixed(0)}% of skills`}>
                         <div className="flex justify-between mb-1">
                           <span className="text-yellow-700 font-semibold">Advanced</span>
-                          <span className="text-yellow-700 font-bold">{((advancedCount/total)*100).toFixed(0)}%</span>
+                          <span className="text-yellow-700 font-bold" aria-live="polite">{((advancedCount/total)*100).toFixed(0)}%</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round((advancedCount/total)*100)} aria-valuemin={0} aria-valuemax={100} aria-label="Advanced skills percentage">
                           <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full" style={{ width: `${(advancedCount/total)*100}%` }}></div>
                         </div>
                       </div>
-                      <div className="text-sm">
+                      <div className="text-sm" role="listitem" aria-label={`Intermediate level: ${((intermediateCount/total)*100).toFixed(0)}% of skills`}>
                         <div className="flex justify-between mb-1">
                           <span className="text-green-700 font-semibold">Intermediate</span>
-                          <span className="text-green-700 font-bold">{((intermediateCount/total)*100).toFixed(0)}%</span>
+                          <span className="text-green-700 font-bold" aria-live="polite">{((intermediateCount/total)*100).toFixed(0)}%</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round((intermediateCount/total)*100)} aria-valuemin={0} aria-valuemax={100} aria-label="Intermediate skills percentage">
                           <div className="h-full bg-gradient-to-r from-green-600 to-green-500 rounded-full" style={{ width: `${(intermediateCount/total)*100}%` }}></div>
                         </div>
                       </div>
@@ -1308,7 +1335,7 @@ export default function App() {
           </div>
 
           {/* Skill Search & Filter */}
-          <div className="max-w-2xl mx-auto mb-12 space-y-4">
+          <div className="max-w-2xl mx-auto mb-12 space-y-4" role="search" aria-label="Skills search and filter controls">
             <div className="relative">
               <input
                 type="text"
@@ -1316,13 +1343,16 @@ export default function App() {
                 value={skillSearchQuery}
                 onChange={(e) => setSkillSearchQuery(e.target.value.toLowerCase())}
                 className="w-full px-6 py-3 bg-white border-2 border-slate-300 text-slate-900 placeholder-slate-500 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
-                aria-label="Search skills"
+                aria-label="Search skills by name or technology (e.g., 'C#', 'React', 'Azure')"
+                aria-describedby="skill-search-hint"
               />
-              <Code className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+              <Code className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none" size={20} aria-hidden="true" />
+              <div id="skill-search-hint" className="sr-only">Type to search for skills by name or related technologies. Results update dynamically as you type.</div>
             </div>
 
             {/* Skill Level Filter */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-center" role="group" aria-labelledby="filter-label">
+              <label id="filter-label" className="sr-only">Filter skills by proficiency level</label>
               {(['All', 'Expert', 'Advanced', 'Intermediate'] as const).map((level) => (
                 <button
                   key={level}
